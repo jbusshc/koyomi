@@ -33,6 +33,7 @@ import app.koyomi.engine.format.Youbi
 import app.koyomi.engine.holiday.Shukujitsu
 import app.koyomi.engine.span.DayPart
 import app.koyomi.settings.Settings
+import app.koyomi.ui.skin.skinOf
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.time.LocalDate
@@ -158,7 +159,7 @@ class AgendaWidget : AppWidgetProvider() {
                 return@buildList
             }
             fun event(event: DayEvent) = Row.Event(
-                color = if (event.instance.color == 0) colors.inkSoft else Color(event.instance.color).copy(alpha = 1f),
+                color = skinOf(look.skin).calendarColor(event.instance.color, colors),
                 time = when (val part = event.part) {
                     DayPart.AllDay -> "終日"
                     is DayPart.Timed -> JaTime.range(part.start, part.end, settings.timeStyle)

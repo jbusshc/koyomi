@@ -32,13 +32,14 @@ class WidgetLook(
     val typeface: Typeface?,
 ) {
     /** Las marcas de evento, cuadradas en el tema de píxeles. */
-    val squareDots: Boolean get() = skin == SkinId.JRPG
+    val squareDots: Boolean get() = skin == SkinId.JRPG || skin == SkinId.RETRO
 
     /** Pinta el fondo y devuelve cuánto hay que dejar libre hasta el contenido por cada lado. */
     fun frame(canvas: Canvas, density: Float): Float = when (skin) {
         SkinId.STANDARD -> standardFrame(canvas, density)
         SkinId.JRPG -> jrpgFrame(canvas, density)
         SkinId.TRADITIONAL -> traditionalFrame(canvas, density)
+        SkinId.RETRO -> retroFrame(canvas, density)
     }
 
     private fun standardFrame(canvas: Canvas, density: Float): Float {
@@ -69,6 +70,18 @@ class WidgetLook(
         return margin + 6 * u
     }
 
+    /** Como RetroSkin: un recuadro liso de un solo trazo, hacia dentro por lo mismo que el de RPG. */
+    private fun retroFrame(canvas: Canvas, density: Float): Float {
+        val u = (2 * density).roundToInt().coerceAtLeast(1).toFloat()
+        val margin = (6 * density).roundToInt().toFloat()
+        val fill = Paint()
+        fill.color = colors.frame.toArgb()
+        canvas.drawRect(margin, margin, canvas.width - margin, canvas.height - margin, fill)
+        fill.color = colors.surface.toArgb()
+        canvas.drawRect(margin + u, margin + u, canvas.width - margin - u, canvas.height - margin - u, fill)
+        return margin + 5 * u
+    }
+
     /** Una hoja de papel con un filete fino y un sello en la esquina. */
     private fun traditionalFrame(canvas: Canvas, density: Float): Float {
         val radius = 14 * density
@@ -96,7 +109,7 @@ class WidgetLook(
             }
             val font = when (settings.skin) {
                 SkinId.STANDARD -> null
-                SkinId.JRPG -> R.font.dotgothic16_regular
+                SkinId.JRPG, SkinId.RETRO -> R.font.dotgothic16_regular
                 SkinId.TRADITIONAL -> R.font.zen_old_mincho_subset
             }
             return WidgetLook(settings.skin, dark, skinOf(settings.skin).palette(dark), font?.let { ResourcesCompat.getFont(context, it) })

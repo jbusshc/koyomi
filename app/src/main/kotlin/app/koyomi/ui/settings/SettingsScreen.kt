@@ -130,6 +130,7 @@ fun SettingsScreen(viewModel: SettingsViewModel = viewModel()) {
             Choice("スタンダード", null, settings.skin == SkinId.STANDARD, colors) { viewModel.setSkin(SkinId.STANDARD) }
             Choice("RPG", null, settings.skin == SkinId.JRPG, colors) { viewModel.setSkin(SkinId.JRPG) }
             Choice("和風", null, settings.skin == SkinId.TRADITIONAL, colors) { viewModel.setSkin(SkinId.TRADITIONAL) }
+            Choice("レトロ", null, settings.skin == SkinId.RETRO, colors) { viewModel.setSkin(SkinId.RETRO) }
         }
 
         Section("明るさ", stringResource(R.string.settings_mode), colors) {
@@ -241,7 +242,7 @@ private fun CalendarRow(calendar: DeviceCalendar, shown: Boolean, colors: Palett
             .padding(vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        skin().Mark(shown, if (calendar.color == 0) colors.ink else Color(calendar.color).copy(alpha = 1f))
+        skin().Mark(shown, skin().calendarColor(calendar.color, colors))
         Column(Modifier.padding(start = 14.dp)) {
             Text(calendar.name, color = colors.ink, fontSize = 16.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
             if (calendar.account != calendar.name) {

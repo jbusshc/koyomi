@@ -56,6 +56,12 @@ interface KoyomiSkin {
     /** Si el mes se acompaña de su nombre antiguo (神無月). */
     val wafuMonth: Boolean
 
+    /**
+     * El color con que se marca algo de un calendario del teléfono. Casi siempre el suyo; un tema
+     * de paleta cerrada lo cambia por uno de los propios.
+     */
+    fun calendarColor(argb: Int, colors: Palette): Color = if (argb == 0) colors.inkSoft else Color(argb).copy(alpha = 1f)
+
     /** Un bloque de contenido, con título o sin él. */
     @Composable
     fun Panel(modifier: Modifier, title: (@Composable RowScope.() -> Unit)?, content: @Composable ColumnScope.() -> Unit)
@@ -89,6 +95,7 @@ fun skinOf(id: SkinId): KoyomiSkin = when (id) {
     SkinId.STANDARD -> StandardSkin
     SkinId.JRPG -> JrpgSkin
     SkinId.TRADITIONAL -> TraditionalSkin
+    SkinId.RETRO -> RetroSkin
 }
 
 @Composable

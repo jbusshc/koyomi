@@ -57,35 +57,13 @@ import kotlinx.coroutines.delay
 import kotlin.math.roundToInt
 
 /**
- * La app como el menú de un RPG japonés de los de antes: ventanas con marco, fuente de píxeles y
- * un cursor que señala. Todo dibujado aquí, con rectángulos: ni un marco ni un icono sale de un
- * juego real. La fuente es DotGothic16 (SIL OFL 1.1).
+ * Lo que comparten los temas de píxeles: la fuente DotGothic16 (SIL OFL 1.1), ventanas con marco,
+ * un cursor que señala y nada redondo. Todo dibujado aquí, con rectángulos: ni un marco ni un
+ * icono sale de un juego real. Cada tema pone sus colores y su marco.
  */
-object JrpgSkin : KoyomiSkin {
-    private val dark = Palette(
-        background = Color(0xFF05060F),
-        surface = Color(0xFF101642),
-        ink = Color(0xFFF4F4F0),
-        inkSoft = Color(0xFFA9B0D6),
-        rule = Color(0xFF3A4180),
-        sunday = Color(0xFFFF8A80),
-        saturday = Color(0xFF82B1FF),
-        accent = Color(0xFFFFD54A),
-        frame = Color(0xFFF4F4F0),
-    )
-    private val light = Palette(
-        background = Color(0xFFD8D2BC),
-        surface = Color(0xFFF3EEDC),
-        ink = Color(0xFF1B1E3C),
-        inkSoft = Color(0xFF5F6385),
-        rule = Color(0xFFBDB69C),
-        sunday = Color(0xFFC0392B),
-        saturday = Color(0xFF2A56A8),
-        accent = Color(0xFFC77700),
-        frame = Color(0xFF1B1E3C),
-    )
-
-    override fun palette(dark: Boolean): Palette = if (dark) this.dark else light
+abstract class PixelSkin : KoyomiSkin {
+    /** El marco de una ventana. [u] es el «píxel» del tema, en píxeles enteros de pantalla. */
+    protected abstract fun DrawScope.frame(colors: Palette, u: Float)
 
     override val font: FontFamily = FontFamily(Font(R.font.dotgothic16_regular))
     override val strong: FontWeight = FontWeight.Normal
@@ -189,18 +167,13 @@ object JrpgSkin : KoyomiSkin {
         }
     }
 
-    /** El marco de una ventana: borde grueso con las esquinas a escalón y una línea fina por dentro. */
     private fun Modifier.window(colors: Palette): Modifier = drawBehind {
-        // El «píxel» del tema, en píxeles enteros de pantalla para que los bordes salgan nítidos
-        val u = 2.dp.toPx().roundToInt().coerceAtLeast(1).toFloat()
-        val thin = (u / 2).roundToInt().coerceAtLeast(1).toFloat()
-        steppedRect(inset = 0f, cut = u, color = colors.frame)
-        steppedRect(inset = 2 * u, cut = u, color = colors.surface)
-        steppedRect(inset = 3 * u, cut = 0f, color = colors.frame.copy(alpha = 0.3f))
-        steppedRect(inset = 3 * u + thin, cut = 0f, color = colors.surface)
+        // En píxeles enteros, para que los bordes salgan nítidos
+        frame(colors, 2.dp.toPx().roundToInt().coerceAtLeast(1).toFloat())
     }
 
-    private fun DrawScope.steppedRect(inset: Float, cut: Float, color: Color) {
+    /** Un rectángulo con las esquinas recortadas a escalón. */
+    protected fun DrawScope.steppedRect(inset: Float, cut: Float, color: Color) {
         drawRect(color, Offset(inset + cut, inset), Size(size.width - 2 * (inset + cut), size.height - 2 * inset))
         drawRect(color, Offset(inset, inset + cut), Size(size.width - 2 * inset, size.height - 2 * (inset + cut)))
     }
@@ -238,5 +211,91 @@ object JrpgSkin : KoyomiSkin {
             introPlayed = true
         }
         return shown.coerceAtMost(length)
+    }
+}
+
+/**
+ * La app como el menú de un RPG japonés de los de antes: ventanas azul noche con marco doble,
+ * letras claras y cursor dorado.
+ */
+object JrpgSkin : PixelSkin() {
+    private val dark = Palette(
+        background = Color(0xFF05060F),
+        surface = Color(0xFF101642),
+        ink = Color(0xFFF4F4F0),
+        inkSoft = Color(0xFFA9B0D6),
+        rule = Color(0xFF3A4180),
+        sunday = Color(0xFFFF8A80),
+        saturday = Color(0xFF82B1FF),
+        accent = Color(0xFFFFD54A),
+        frame = Color(0xFFF4F4F0),
+    )
+    private val light = Palette(
+        background = Color(0xFFD8D2BC),
+        surface = Color(0xFFF3EEDC),
+        ink = Color(0xFF1B1E3C),
+        inkSoft = Color(0xFF5F6385),
+        rule = Color(0xFFBDB69C),
+        sunday = Color(0xFFC0392B),
+        saturday = Color(0xFF2A56A8),
+        accent = Color(0xFFC77700),
+        frame = Color(0xFF1B1E3C),
+    )
+
+    override fun palette(dark: Boolean): Palette = if (dark) this.dark else light
+
+    // Borde grueso con las esquinas a escalón y una línea fina por dentro
+    override fun DrawScope.frame(colors: Palette, u: Float) {
+        val thin = (u / 2).roundToInt().coerceAtLeast(1).toFloat()
+        steppedRect(inset = 0f, cut = u, color = colors.frame)
+        steppedRect(inset = 2 * u, cut = u, color = colors.surface)
+        steppedRect(inset = 3 * u, cut = 0f, color = colors.frame.copy(alpha = 0.3f))
+        steppedRect(inset = 3 * u + thin, cut = 0f, color = colors.surface)
+    }
+}
+
+/**
+ * La pantalla de una consola portátil de cristal líquido: cuatro tonos de verde y ninguno más.
+ * Sin rojo ni azul, el fin de semana y los festivos se distinguen por ir un tono más claros.
+ * En oscuro, los mismos cuatro tonos al revés.
+ */
+object RetroSkin : PixelSkin() {
+    private val darkest = Color(0xFF0F380F)
+    private val darkTone = Color(0xFF306230)
+    private val lightTone = Color(0xFF8BAC0F)
+    private val lightest = Color(0xFF9BBC0F)
+
+    private val light = Palette(
+        background = lightest,
+        surface = lightest,
+        ink = darkest,
+        inkSoft = darkTone,
+        rule = darkTone,
+        sunday = darkTone,
+        saturday = darkTone,
+        accent = darkest,
+        frame = darkest,
+    )
+    private val dark = Palette(
+        background = darkest,
+        surface = darkest,
+        ink = lightest,
+        inkSoft = lightTone,
+        rule = darkTone,
+        sunday = lightTone,
+        saturday = lightTone,
+        accent = lightest,
+        frame = lightTone,
+    )
+
+    override fun palette(dark: Boolean): Palette = if (dark) this.dark else light
+
+    // Cuatro tonos y ninguno más: el color de cada calendario no cabe en esta pantalla
+    override fun calendarColor(argb: Int, colors: Palette): Color = colors.ink
+
+    // Un recuadro liso, de un solo trazo
+    override fun DrawScope.frame(colors: Palette, u: Float) {
+        steppedRect(inset = 0f, cut = 0f, color = colors.frame)
+        steppedRect(inset = u, cut = 0f, color = colors.surface)
     }
 }

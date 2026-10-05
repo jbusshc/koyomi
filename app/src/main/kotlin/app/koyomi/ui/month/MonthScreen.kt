@@ -52,7 +52,6 @@ import app.koyomi.engine.holiday.Shukujitsu
 import app.koyomi.engine.kyureki.Sekki
 import app.koyomi.settings.Settings
 import app.koyomi.ui.components.DayEvents
-import app.koyomi.ui.components.eventColor
 import app.koyomi.ui.components.newEvent
 import app.koyomi.ui.components.openEvent
 import app.koyomi.ui.components.rekichu
@@ -202,7 +201,7 @@ private fun DayCell(day: LocalDate, inMonth: Boolean, isToday: Boolean, events: 
         if (events.isNotEmpty()) {
             Row(Modifier.padding(top = 4.dp), horizontalArrangement = Arrangement.spacedBy(3.dp)) {
                 for (event in events.take(3)) {
-                    Box(Modifier.size(5.dp).clip(skin().dot).background(eventColor(event.instance, colors).copy(alpha = fade)))
+                    Box(Modifier.size(5.dp).clip(skin().dot).background(skin().calendarColor(event.instance.color, colors).copy(alpha = fade)))
                 }
             }
         }

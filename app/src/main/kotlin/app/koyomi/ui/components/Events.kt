@@ -64,7 +64,7 @@ fun EventRow(event: DayEvent, timeStyle: TimeStyle, colors: Palette, onOpen: (Ca
                 .padding(top = 7.dp, end = 12.dp)
                 .size(8.dp)
                 .clip(skin().dot)
-                .background(eventColor(instance, colors)),
+                .background(skin().calendarColor(instance.color, colors)),
         )
         Text(
             text = when (val part = event.part) {
@@ -90,9 +90,6 @@ fun EventRow(event: DayEvent, timeStyle: TimeStyle, colors: Palette, onOpen: (Ca
         }
     }
 }
-
-fun eventColor(instance: CalendarInstance, colors: Palette): Color =
-    if (instance.color == 0) colors.inkSoft else Color(instance.color).copy(alpha = 1f)
 
 /** 暦注 de un día: 大安 · 旧暦8月24日 · 寒露. Nulo fuera de lo que cubren las tablas. */
 fun rekichu(day: LocalDate): String? =
