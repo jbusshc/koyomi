@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Solo la ventana antes de que dibuje Compose: mismo fondo, sin destello -->
+    <style name="Theme.Koyomi" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@color/window</item>
+    </style>
+    <color name="window">#FAFAF7</color>
+</resources>
