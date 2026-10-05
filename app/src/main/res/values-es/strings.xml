@@ -15,6 +15,11 @@
     <string name="settings_calendars">Calendarios que se ven en Koyomi</string>
     <string name="settings_about">Sobre esta app</string>
     <string name="settings_privacy">Koyomi lee tu calendario y nunca escribe en él. No tiene acceso a internet: nada de lo que ves aquí sale de tu teléfono.</string>
+    <string name="settings_licenses">Fuentes y datos que usa Koyomi</string>
+    <string name="license_dotgothic16_use">Fuente del tema RPG</string>
+    <string name="license_zen_old_mincho_use">Fuente del tema 和風, recortada a los caracteres de uso corriente</string>
+    <string name="license_holidays_use">Festivos nacionales de Japón</string>
+    <string name="license_holidays">Los festivos hasta 2021 salen de la tabla que publica la Oficina del Gabinete de Japón (内閣府, 「国民の祝日」について). Desde 2022 se calculan con la ley vigente; los días de equinoccio son una estimación hasta que se anuncian oficialmente.</string>
     <string name="widget_date_name">Fecha</string>
     <string name="widget_date_description">La fecha de hoy en japonés: era, día y día de la semana</string>
 </resources>

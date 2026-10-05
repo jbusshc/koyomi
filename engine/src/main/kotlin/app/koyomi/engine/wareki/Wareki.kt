@@ -1,5 +1,6 @@
 package app.koyomi.engine.wareki
 
+import app.koyomi.engine.format.Kansuji
 import java.time.LocalDate
 
 /** Un año de era: 令和8年. [year] 1 es 元年. */
@@ -7,6 +8,9 @@ data class Wareki(val era: Era, val year: Int) {
 
     /** 令和8年, 令和元年 */
     val text: String get() = "${era.kanji}${if (year == 1) "元" else year.toString()}年"
+
+    /** 令和八年, 令和元年: con el año en kanji, para escribirlo en vertical */
+    val kanjiText: String get() = "${era.kanji}${if (year == 1) "元" else Kansuji.of(year)}年"
 
     companion object {
         /** Japón adoptó el calendario gregoriano este día; antes, las fechas no se corresponden. */

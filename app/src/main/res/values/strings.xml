@@ -18,6 +18,11 @@
     <string name="settings_calendars">Calendars shown in Koyomi</string>
     <string name="settings_about">About this app</string>
     <string name="settings_privacy">Koyomi reads your calendar and never writes to it. It has no internet access: nothing you see here leaves your phone.</string>
+    <string name="settings_licenses">Fonts and data used by Koyomi</string>
+    <string name="license_dotgothic16_use">Font of the RPG theme</string>
+    <string name="license_zen_old_mincho_use">Font of the 和風 theme, reduced to commonly used characters</string>
+    <string name="license_holidays_use">Japanese national holidays</string>
+    <string name="license_holidays">Holidays up to 2021 come from the table published by the Cabinet Office of Japan (内閣府, 「国民の祝日」について). From 2022 on they are calculated from the current law; the equinox days are an estimate until they are officially announced.</string>
     <string name="widget_date_name">Date</string>
     <string name="widget_date_description">The date in Japanese: era, day and weekday</string>
 </resources>

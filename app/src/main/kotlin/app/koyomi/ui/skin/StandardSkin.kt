@@ -69,6 +69,9 @@ object StandardSkin : KoyomiSkin {
     override val buttonShape: Shape = RoundedCornerShape(8.dp)
     override val sheetShape: Shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
 
+    override val sheetHandle = true
+    override val wafuMonth = false
+
     override fun sheetColor(colors: Palette): Color = colors.surface
 
     @Composable

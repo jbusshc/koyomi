@@ -13,12 +13,19 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -93,12 +100,18 @@ fun SettingsScreen(viewModel: SettingsViewModel = viewModel()) {
     val sample = LocalTime.of(21, 30)
 
     val skin = skin()
+    var licenses by rememberSaveable { mutableStateOf(false) }
+    if (licenses) {
+        LicensesScreen(onBack = { licenses = false })
+        return
+    }
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = skin.screenPadding)) {
         Text("設定", color = colors.ink, fontSize = 28.sp, fontWeight = skin.strong, modifier = Modifier.padding(top = 28.dp, bottom = 4.dp))
 
         Section("テーマ", stringResource(R.string.settings_theme), colors) {
             Choice("スタンダード", null, settings.skin == SkinId.STANDARD, colors) { viewModel.setSkin(SkinId.STANDARD) }
             Choice("RPG", null, settings.skin == SkinId.JRPG, colors) { viewModel.setSkin(SkinId.JRPG) }
+            Choice("和風", null, settings.skin == SkinId.TRADITIONAL, colors) { viewModel.setSkin(SkinId.TRADITIONAL) }
         }
 
         Section("明るさ", stringResource(R.string.settings_mode), colors) {
@@ -140,13 +153,17 @@ fun SettingsScreen(viewModel: SettingsViewModel = viewModel()) {
         Section("このアプリについて", stringResource(R.string.settings_about), colors) {
             Text("Koyomi ${BuildConfig.VERSION_NAME}", color = colors.ink, fontSize = 16.sp, modifier = Modifier.padding(vertical = 10.dp))
             Text(stringResource(R.string.settings_privacy), color = colors.inkSoft, fontSize = 13.sp, lineHeight = 19.sp)
-            Text(
-                "フォント: DotGothic16 © The DotGothic16 Project Authors · SIL Open Font License 1.1",
-                color = colors.inkSoft,
-                fontSize = 12.sp,
-                lineHeight = 17.sp,
-                modifier = Modifier.padding(top = 10.dp),
-            )
+            Column(
+                Modifier
+                    .padding(top = 6.dp)
+                    .fillMaxWidth()
+                    .clip(skin.buttonShape)
+                    .clickable { licenses = true }
+                    .padding(vertical = 10.dp),
+            ) {
+                Text("ライセンス", color = colors.ink, fontSize = 16.sp)
+                Text(stringResource(R.string.settings_licenses), color = colors.inkSoft, fontSize = 13.sp)
+            }
         }
         Spacer(Modifier.height(40.dp))
     }
@@ -203,3 +220,38 @@ private fun CalendarRow(calendar: DeviceCalendar, shown: Boolean, colors: Palett
         }
     }
 }
+
+/** Lo que Koyomi usa de otros: las fuentes de los temas, con su licencia entera, y la tabla de festivos. */
+@Composable
+private fun LicensesScreen(onBack: () -> Unit) {
+    val colors = palette()
+    val skin = skin()
+    val resources = LocalContext.current.resources
+    BackHandler(onBack = onBack)
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = skin.screenPadding)) {
+        Text(
+            "← 設定",
+            color = colors.inkSoft,
+            fontSize = 15.sp,
+            modifier = Modifier.padding(top = 20.dp).clip(skin.buttonShape).clickable(onClick = onBack).padding(vertical = 8.dp),
+        )
+        Text("ライセンス", color = colors.ink, fontSize = 28.sp, fontWeight = skin.strong, modifier = Modifier.padding(bottom = 4.dp))
+
+        for ((name, use, license) in LICENSES) {
+            val text = remember(license) { resources.openRawResource(license).bufferedReader().use { it.readText() } }
+            Section(name, stringResource(use), colors) {
+                // La licencia va tal cual, en la fuente del teléfono: es para leerla, no para lucirla
+                Text(text, color = colors.inkSoft, fontSize = 11.sp, lineHeight = 15.sp, fontFamily = FontFamily.Default, modifier = Modifier.padding(top = 8.dp))
+            }
+        }
+        Section("国民の祝日", stringResource(R.string.license_holidays_use), colors) {
+            Text(stringResource(R.string.license_holidays), color = colors.inkSoft, fontSize = 13.sp, lineHeight = 19.sp, modifier = Modifier.padding(top = 8.dp))
+        }
+        Spacer(Modifier.height(40.dp))
+    }
+}
+
+private val LICENSES = listOf(
+    Triple("DotGothic16", R.string.license_dotgothic16_use, R.raw.license_dotgothic16),
+    Triple("Zen Old Mincho", R.string.license_zen_old_mincho_use, R.raw.license_zen_old_mincho),
+)

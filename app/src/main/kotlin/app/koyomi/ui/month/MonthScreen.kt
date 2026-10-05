@@ -19,6 +19,7 @@ import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
@@ -45,6 +46,7 @@ import app.koyomi.calendar.DayEvent
 import app.koyomi.engine.format.DateStyle
 import app.koyomi.engine.format.JaDate
 import app.koyomi.engine.format.MonthGrid
+import app.koyomi.engine.format.Wafu
 import app.koyomi.engine.format.Youbi
 import app.koyomi.engine.holiday.Shukujitsu
 import app.koyomi.settings.Settings
@@ -116,7 +118,11 @@ private fun MonthHeader(month: YearMonth, style: DateStyle, isCurrent: Boolean, 
                 fontSize = 28.sp,
                 fontWeight = skin().strong,
             )
-            if (style == DateStyle.EDUCATIONAL) Text("${month.year}年", color = colors.inkSoft, fontSize = 14.sp)
+            val subtitle = listOfNotNull(
+                Wafu.of(month.monthValue).kanji.takeIf { skin().wafuMonth },
+                "${month.year}年".takeIf { style == DateStyle.EDUCATIONAL },
+            )
+            if (subtitle.isNotEmpty()) Text(subtitle.joinToString(" · "), color = colors.inkSoft, fontSize = 14.sp)
         }
         // Lejos de hoy, una forma visible de volver
         if (!isCurrent) Text("今日へ", color = colors.sunday, fontSize = 15.sp, modifier = Modifier.padding(bottom = 4.dp))
@@ -210,13 +216,14 @@ private fun DaySheet(day: LocalDate, settings: Settings, viewModel: MonthViewMod
         containerColor = skin.sheetColor(colors),
         contentColor = colors.ink,
         shape = skin.sheetShape,
+        dragHandle = if (skin.sheetHandle) ({ BottomSheetDefaults.DragHandle(color = colors.inkSoft.copy(alpha = 0.5f)) }) else null,
     ) {
         skin.Panel(
             Modifier
                 .fillMaxWidth()
                 .verticalScroll(rememberScrollState())
                 .navigationBarsPadding()
-                .padding(start = skin.screenPadding, end = skin.screenPadding, bottom = 24.dp),
+                .padding(start = skin.screenPadding, end = skin.screenPadding, top = if (skin.sheetHandle) 0.dp else 12.dp, bottom = 24.dp),
             null,
         ) {
             if (settings.dateStyle != DateStyle.SIMPLE) Text(date.year, color = colors.inkSoft, fontSize = 15.sp)

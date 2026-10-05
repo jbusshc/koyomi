@@ -11,7 +11,7 @@ import app.koyomi.engine.format.Youbi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
-enum class SkinId { STANDARD, JRPG }
+enum class SkinId { STANDARD, JRPG, TRADITIONAL }
 
 enum class ThemeMode { SYSTEM, LIGHT, DARK }
 

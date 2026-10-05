@@ -94,6 +94,9 @@ object JrpgSkin : KoyomiSkin {
     override val screenPadding = 12.dp
     override val sheetShape: Shape = RectangleShape
 
+    override val sheetHandle = false
+    override val wafuMonth = false
+
     override fun sheetColor(colors: Palette): Color = colors.background
 
     @Composable

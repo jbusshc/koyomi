@@ -50,6 +50,12 @@ interface KoyomiSkin {
 
     fun sheetColor(colors: Palette): Color
 
+    /** El asa redondeada del panel: en un tema de píxeles desentona. */
+    val sheetHandle: Boolean
+
+    /** Si el mes se acompaña de su nombre antiguo (神無月). */
+    val wafuMonth: Boolean
+
     /** Un bloque de contenido, con título o sin él. */
     @Composable
     fun Panel(modifier: Modifier, title: (@Composable RowScope.() -> Unit)?, content: @Composable ColumnScope.() -> Unit)
@@ -82,6 +88,7 @@ fun palette(): Palette = LocalPalette.current
 fun skinOf(id: SkinId): KoyomiSkin = when (id) {
     SkinId.STANDARD -> StandardSkin
     SkinId.JRPG -> JrpgSkin
+    SkinId.TRADITIONAL -> TraditionalSkin
 }
 
 @Composable

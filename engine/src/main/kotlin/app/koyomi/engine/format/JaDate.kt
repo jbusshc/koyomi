@@ -19,8 +19,9 @@ enum class DateStyle {
  * en vertical). No depende del `Locale` del teléfono: sale igual en cualquier idioma.
  */
 data class JaDateText(
+    val date: LocalDate,
     /** 令和8年. Nulo antes de 1873, cuando solo vale el año occidental. */
-    val wareki: Wareki?,
+    val warekiYear: String?,
     /** 2026年 */
     val seirekiYear: String,
     /** 10月 */
@@ -33,7 +34,7 @@ data class JaDateText(
     val monthDay: String get() = month + day
 
     /** 令和8年, o 2026年 si no hay era */
-    val year: String get() = wareki?.text ?: seirekiYear
+    val year: String get() = warekiYear ?: seirekiYear
 
     /** 2026年10月4日 */
     val seireki: String get() = seirekiYear + monthDay
@@ -46,15 +47,26 @@ data class JaDateText(
 
     /** La línea occidental del estilo educativo; nula si no aporta nada. */
     fun secondLine(style: DateStyle): String? =
-        if (style == DateStyle.EDUCATIONAL && wareki != null) seireki else null
+        if (style == DateStyle.EDUCATIONAL && warekiYear != null) seireki else null
 }
 
 object JaDate {
     fun of(date: LocalDate): JaDateText = JaDateText(
-        wareki = Wareki.of(date),
+        date = date,
+        warekiYear = Wareki.of(date)?.text,
         seirekiYear = "${date.year}年",
         month = "${date.monthValue}月",
         day = "${date.dayOfMonth}日",
+        youbi = Youbi.of(date),
+    )
+
+    /** La misma fecha con los números en kanji: 令和八年 十月四日, 二〇二六年. Para escribirla en vertical. */
+    fun kanji(date: LocalDate): JaDateText = JaDateText(
+        date = date,
+        warekiYear = Wareki.of(date)?.kanjiText,
+        seirekiYear = "${Kansuji.digits(date.year)}年",
+        month = "${Kansuji.of(date.monthValue)}月",
+        day = "${Kansuji.of(date.dayOfMonth)}日",
         youbi = Youbi.of(date),
     )
 
