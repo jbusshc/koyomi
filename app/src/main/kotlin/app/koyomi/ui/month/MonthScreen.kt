@@ -49,11 +49,13 @@ import app.koyomi.engine.format.MonthGrid
 import app.koyomi.engine.format.Wafu
 import app.koyomi.engine.format.Youbi
 import app.koyomi.engine.holiday.Shukujitsu
+import app.koyomi.engine.kyureki.Sekki
 import app.koyomi.settings.Settings
 import app.koyomi.ui.components.DayEvents
 import app.koyomi.ui.components.eventColor
 import app.koyomi.ui.components.newEvent
 import app.koyomi.ui.components.openEvent
+import app.koyomi.ui.components.rekichu
 import app.koyomi.ui.components.youbiColor
 import app.koyomi.ui.theme.Palette
 import app.koyomi.ui.skin.palette
@@ -90,7 +92,7 @@ fun MonthScreen(viewModel: MonthViewModel = viewModel()) {
                 val month = origin.plusMonths((page - CENTER).toLong())
                 val events by remember(month, settings.weekStart) { viewModel.events(month, settings.weekStart) }
                     .collectAsStateWithLifecycle(initialValue = null)
-                MonthPage(month, settings.weekStart, today, events.orEmpty(), colors, onDay = { selected = it })
+                MonthPage(month, settings.weekStart, today, events.orEmpty(), settings.rekichu, colors, onDay = { selected = it })
             }
         }
     }
@@ -150,6 +152,7 @@ private fun MonthPage(
     weekStart: Youbi,
     today: LocalDate,
     events: Map<LocalDate, List<DayEvent>>,
+    rekichu: Boolean,
     colors: Palette,
     onDay: (LocalDate) -> Unit,
 ) {
@@ -163,6 +166,8 @@ private fun MonthPage(
                         inMonth = YearMonth.from(day) == month,
                         isToday = day == today,
                         events = events[day].orEmpty(),
+                        // En una celda solo cabe una palabra: el término solar, los pocos días que lo hay
+                        sekki = if (rekichu) Sekki.of(day)?.kanji else null,
                         colors = colors,
                         modifier = Modifier.weight(1f).fillMaxHeight().clickable { onDay(day) },
                     )
@@ -173,17 +178,18 @@ private fun MonthPage(
 }
 
 @Composable
-private fun DayCell(day: LocalDate, inMonth: Boolean, isToday: Boolean, events: List<DayEvent>, colors: Palette, modifier: Modifier) {
+private fun DayCell(day: LocalDate, inMonth: Boolean, isToday: Boolean, events: List<DayEvent>, sekki: String?, colors: Palette, modifier: Modifier) {
     val holiday = Shukujitsu.of(day)
     val color = youbiColor(Youbi.of(day), holiday != null, colors)
     // Los días de los meses vecinos se ven, pero apagados
     val fade = if (inMonth) 1f else 0.35f
     Column(modifier.padding(top = 6.dp), horizontalAlignment = Alignment.CenterHorizontally) {
         skin().DayNumber(day.dayOfMonth, color.copy(alpha = fade), isToday)
-        if (holiday != null) {
+        val note = holiday ?: sekki
+        if (note != null) {
             Text(
-                holiday,
-                color = colors.sunday.copy(alpha = fade),
+                note,
+                color = (if (holiday != null) colors.sunday else colors.inkSoft).copy(alpha = fade),
                 fontSize = 9.sp,
                 lineHeight = 11.sp,
                 maxLines = 1,
@@ -232,6 +238,7 @@ private fun DaySheet(day: LocalDate, settings: Settings, viewModel: MonthViewMod
                 Text("（${date.youbi.short}）", color = youbiColor(date.youbi, holiday != null, colors), fontSize = 20.sp, modifier = Modifier.padding(bottom = 2.dp))
             }
             if (holiday != null) Text(holiday, color = colors.sunday, fontSize = 15.sp, modifier = Modifier.padding(top = 4.dp))
+            if (settings.rekichu) rekichu(day)?.let { Text(it, color = colors.inkSoft, fontSize = 13.sp, modifier = Modifier.padding(top = 4.dp)) }
             Box(Modifier.padding(top = 12.dp, bottom = 4.dp).fillMaxWidth().height(1.dp).background(colors.rule))
 
             events?.let { DayEvents(it, settings.timeStyle, colors, onOpen = { instance -> context.openEvent(instance) }) }

@@ -6,6 +6,11 @@
     <string name="calendar_permission_allow">Allow calendar access</string>
     <string name="nav_today">Today</string>
     <string name="nav_month">Month</string>
+    <string name="nav_convert">Convert</string>
+    <string name="convert_to_wareki">From a Western date to the Japanese calendar</string>
+    <string name="convert_to_seireki">From an era year to the Western year</string>
+    <string name="convert_no_such_year">%1$s ended in its year %2$d</string>
+    <string name="settings_rekichu">Traditional notes next to the date: lucky days, old calendar, solar terms</string>
     <string name="nav_settings">Settings</string>
     <string name="add_event_hint">Add an event in your calendar app</string>
     <string name="settings_theme">Look of the app</string>

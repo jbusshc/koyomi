@@ -29,6 +29,9 @@ import app.koyomi.calendar.DayEvent
 import app.koyomi.engine.format.JaTime
 import app.koyomi.engine.format.TimeStyle
 import app.koyomi.engine.format.Youbi
+import app.koyomi.engine.kyureki.Kyureki
+import app.koyomi.engine.kyureki.Rokuyo
+import app.koyomi.engine.kyureki.Sekki
 import app.koyomi.engine.span.DayPart
 import app.koyomi.ui.skin.skin
 import app.koyomi.ui.theme.Palette
@@ -90,6 +93,10 @@ fun EventRow(event: DayEvent, timeStyle: TimeStyle, colors: Palette, onOpen: (Ca
 
 fun eventColor(instance: CalendarInstance, colors: Palette): Color =
     if (instance.color == 0) colors.inkSoft else Color(instance.color).copy(alpha = 1f)
+
+/** 暦注 de un día: 大安 · 旧暦8月24日 · 寒露. Nulo fuera de lo que cubren las tablas. */
+fun rekichu(day: LocalDate): String? =
+    listOfNotNull(Rokuyo.of(day)?.kanji, Kyureki.of(day)?.text, Sekki.of(day)?.kanji).joinToString(" · ").ifEmpty { null }
 
 /** La convención de un calendario japonés: domingos y festivos en rojo, sábados en azul. */
 fun youbiColor(youbi: Youbi, holiday: Boolean, colors: Palette, other: Color = colors.ink): Color = when {

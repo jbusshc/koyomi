@@ -40,6 +40,7 @@ import app.koyomi.engine.format.JaDate
 import app.koyomi.engine.holiday.Shukujitsu
 import app.koyomi.ui.components.DayEvents
 import app.koyomi.ui.components.openEvent
+import app.koyomi.ui.components.rekichu
 import app.koyomi.ui.components.youbiColor
 import app.koyomi.ui.skin.palette
 import app.koyomi.ui.skin.skin
@@ -82,6 +83,10 @@ private fun TodayContent(state: TodayUi, onDateClick: () -> Unit, onGrant: () ->
             // Sin onda: la fecha cambia de forma, y eso ya dice que se ha tocado
             modifier = Modifier.fillMaxWidth().clickable(interactionSource = remember { MutableInteractionSource() }, indication = null, onClick = onDateClick),
         )
+
+        if (state.settings.rekichu) {
+            rekichu(state.today)?.let { Text(it, color = colors.inkSoft, fontSize = 14.sp, modifier = Modifier.padding(top = 4.dp, bottom = 8.dp)) }
+        }
 
         val events = state.events
         if (events == null) {

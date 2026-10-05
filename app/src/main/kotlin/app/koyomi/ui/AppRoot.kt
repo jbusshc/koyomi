@@ -25,6 +25,7 @@ import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.koyomi.KoyomiApp
 import app.koyomi.R
+import app.koyomi.ui.convert.ConvertScreen
 import app.koyomi.ui.month.MonthScreen
 import app.koyomi.ui.settings.SettingsScreen
 import app.koyomi.ui.skin.KoyomiTheme
@@ -50,6 +51,7 @@ private fun Screens(current: Destination, modifier: Modifier) {
                         when (destination) {
                             Destination.TODAY -> TodayScreen()
                             Destination.MONTH -> MonthScreen()
+                            Destination.CONVERT -> ConvertScreen()
                             Destination.SETTINGS -> SettingsScreen()
                         }
                     }
@@ -68,6 +70,7 @@ private fun Screens(current: Destination, modifier: Modifier) {
 enum class Destination(val label: String, val gloss: Int) {
     TODAY("今日", R.string.nav_today),
     MONTH("月", R.string.nav_month),
+    CONVERT("変換", R.string.nav_convert),
     SETTINGS("設定", R.string.nav_settings),
 }
 

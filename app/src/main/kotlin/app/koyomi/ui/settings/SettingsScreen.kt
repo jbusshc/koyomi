@@ -85,6 +85,8 @@ class SettingsViewModel(app: Application) : AndroidViewModel(app) {
 
     fun setWeekStart(day: Youbi) = viewModelScope.launch { store.setWeekStart(day) }
 
+    fun setRekichu(shown: Boolean) = viewModelScope.launch { store.setRekichu(shown) }
+
     fun setCalendarShown(id: Long, shown: Boolean) = viewModelScope.launch { store.setCalendarHidden(id, !shown) }
 }
 
@@ -139,6 +141,11 @@ fun SettingsScreen(viewModel: SettingsViewModel = viewModel()) {
             for (day in listOf(Youbi.NICHI, Youbi.GETSU)) {
                 Choice(day.full, null, settings.weekStart == day, colors) { viewModel.setWeekStart(day) }
             }
+        }
+
+        Section("暦注", stringResource(R.string.settings_rekichu), colors) {
+            Choice("表示しない", null, !settings.rekichu, colors) { viewModel.setRekichu(false) }
+            Choice("表示する", "六曜・旧暦・二十四節気", settings.rekichu, colors) { viewModel.setRekichu(true) }
         }
 
         if (calendars.isNotEmpty()) {

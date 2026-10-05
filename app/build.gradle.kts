@@ -13,8 +13,8 @@ android {
         targetSdk = 36
         // Como en Tateyoko: versionCode sube en uno con cada APK que se entrega; versionName es
         // 0.MENOR.PARCHE. La 1.0.0 es la de Play.
-        versionCode = 7
-        versionName = "0.6.0"
+        versionCode = 8
+        versionName = "0.7.0"
         manifestPlaceholders["appLabel"] = "Koyomi"
     }
 
@@ -48,6 +48,15 @@ android {
         compose = true
         buildConfig = true
     }
+}
+
+// La beta para el día a día, con su versión en el nombre y sin pisar las anteriores:
+// ./gradlew :app:betaApk  →  dist/koyomi-beta-<versión>.apk
+tasks.register<Copy>("betaApk") {
+    dependsOn("assembleStaging")
+    from(layout.buildDirectory.dir("outputs/apk/staging")) { include("*.apk") }
+    into(rootProject.layout.projectDirectory.dir("dist"))
+    rename { "koyomi-beta-${android.defaultConfig.versionName}.apk" }
 }
 
 dependencies {

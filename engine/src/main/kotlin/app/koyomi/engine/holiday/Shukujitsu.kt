@@ -17,7 +17,8 @@ object Shukujitsu {
     const val KOKUMIN_NO_KYUJITSU = "国民の休日"
 
     private const val FIRST_RULE_YEAR = 2022
-    private const val TABLE = "shukujitsu-1955-2021.csv"
+    // Ruta entera: al publicar, las clases cambian de paquete y una relativa deja de valer
+    private const val TABLE = "/app/koyomi/engine/holiday/shukujitsu-1955-2021.csv"
 
     private val table: Map<LocalDate, String> by lazy {
         Shukujitsu::class.java.getResourceAsStream(TABLE)!!.bufferedReader(Charsets.UTF_8).useLines { lines ->

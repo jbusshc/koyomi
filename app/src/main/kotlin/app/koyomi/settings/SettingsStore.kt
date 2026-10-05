@@ -1,6 +1,7 @@
 package app.koyomi.settings
 
 import android.content.Context
+import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
@@ -22,6 +23,8 @@ data class Settings(
     val timeStyle: TimeStyle = TimeStyle.H24,
     /** 日 o 月: el primer día de la semana en la vista mensual. */
     val weekStart: Youbi = Youbi.NICHI,
+    /** 暦注: si junto a la fecha salen el 六曜, la fecha antigua y los términos solares. */
+    val rekichu: Boolean = false,
     /** Calendarios del teléfono que Koyomi no enseña. */
     val hiddenCalendars: Set<Long> = emptySet(),
 )
@@ -38,6 +41,7 @@ class SettingsStore(private val context: Context) {
             dateStyle = enumOr(prefs[DATE_STYLE], defaults.dateStyle),
             timeStyle = enumOr(prefs[TIME_STYLE], defaults.timeStyle),
             weekStart = enumOr(prefs[WEEK_START], defaults.weekStart),
+            rekichu = prefs[REKICHU] ?: defaults.rekichu,
             hiddenCalendars = prefs[HIDDEN_CALENDARS].orEmpty().mapNotNull { it.toLongOrNull() }.toSet(),
         )
     }
@@ -52,6 +56,8 @@ class SettingsStore(private val context: Context) {
 
     suspend fun setWeekStart(day: Youbi) = context.dataStore.edit { it[WEEK_START] = day.name }
 
+    suspend fun setRekichu(shown: Boolean) = context.dataStore.edit { it[REKICHU] = shown }
+
     suspend fun setCalendarHidden(id: Long, hidden: Boolean) = context.dataStore.edit { prefs ->
         val current = prefs[HIDDEN_CALENDARS].orEmpty()
         prefs[HIDDEN_CALENDARS] = if (hidden) current + id.toString() else current - id.toString()
@@ -63,6 +69,7 @@ class SettingsStore(private val context: Context) {
         val DATE_STYLE = stringPreferencesKey("date_style")
         val TIME_STYLE = stringPreferencesKey("time_style")
         val WEEK_START = stringPreferencesKey("week_start")
+        val REKICHU = booleanPreferencesKey("rekichu")
         val HIDDEN_CALENDARS = stringSetPreferencesKey("hidden_calendars")
 
         inline fun <reified T : Enum<T>> enumOr(name: String?, default: T): T =
