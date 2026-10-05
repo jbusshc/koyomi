@@ -1,8 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!-- El único permiso. Sin INTERNET a propósito: lo que Koyomi lee del teléfono no puede salir de él -->
+    <!-- Solo lectura: Koyomi no escribe en el calendario, y nada de él sale del teléfono -->
     <uses-permission android:name="android.permission.READ_CALENDAR" />
+
+    <!-- Solo para el tiempo, y solo si se elige una ciudad: se envían sus coordenadas a Open-Meteo.
+         El código que usa la red (paquete weather) no ve el calendario -->
+    <uses-permission android:name="android.permission.INTERNET" />
 
     <application
         android:name=".KoyomiApp"
@@ -61,6 +65,23 @@
                 android:name="android.appwidget.provider"
                 android:resource="@xml/clock_widget_info" />
         </receiver>
+
+        <!-- El tiempo de la ciudad elegida. Con el widget puesto, un trabajo pide el parte cada pocas horas -->
+        <receiver
+            android:name=".widget.WeatherWidget"
+            android:exported="true"
+            android:label="@string/widget_weather_name">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/weather_widget_info" />
+        </receiver>
+        <service
+            android:name=".widget.WeatherWidget$Refresh"
+            android:exported="false"
+            android:permission="android.permission.BIND_JOB_SERVICE" />
 
         <activity
             android:name=".MainActivity"

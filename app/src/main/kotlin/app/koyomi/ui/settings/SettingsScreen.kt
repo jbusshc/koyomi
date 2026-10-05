@@ -42,10 +42,12 @@ import app.koyomi.engine.format.JaDate
 import app.koyomi.engine.format.JaTime
 import app.koyomi.engine.format.TimeStyle
 import app.koyomi.engine.format.Youbi
+import app.koyomi.settings.Place
 import app.koyomi.settings.Settings
 import app.koyomi.settings.SkinId
 import app.koyomi.settings.ThemeMode
 import app.koyomi.ui.skin.palette
+import app.koyomi.ui.weather.PlaceScreen
 import app.koyomi.ui.skin.skin
 import app.koyomi.ui.theme.Palette
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -85,6 +87,8 @@ class SettingsViewModel(app: Application) : AndroidViewModel(app) {
 
     fun setWeekStart(day: Youbi) = viewModelScope.launch { store.setWeekStart(day) }
 
+    fun setWeather(place: Place?) = viewModelScope.launch { store.setWeather(place) }
+
     fun setRekichu(shown: Boolean) = viewModelScope.launch { store.setRekichu(shown) }
 
     fun setCalendarShown(id: Long, shown: Boolean) = viewModelScope.launch { store.setCalendarHidden(id, !shown) }
@@ -105,6 +109,18 @@ fun SettingsScreen(viewModel: SettingsViewModel = viewModel()) {
     var licenses by rememberSaveable { mutableStateOf(false) }
     if (licenses) {
         LicensesScreen(onBack = { licenses = false })
+        return
+    }
+    var places by rememberSaveable { mutableStateOf(false) }
+    if (places) {
+        PlaceScreen(
+            current = settings.weather,
+            onPick = {
+                viewModel.setWeather(it)
+                places = false
+            },
+            onBack = { places = false },
+        )
         return
     }
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = skin.screenPadding)) {
@@ -140,6 +156,13 @@ fun SettingsScreen(viewModel: SettingsViewModel = viewModel()) {
         Section("週の始まり", stringResource(R.string.settings_week_start), colors) {
             for (day in listOf(Youbi.NICHI, Youbi.GETSU)) {
                 Choice(day.full, null, settings.weekStart == day, colors) { viewModel.setWeekStart(day) }
+            }
+        }
+
+        Section("天気", stringResource(R.string.settings_weather), colors) {
+            Column(Modifier.fillMaxWidth().clip(skin.buttonShape).clickable { places = true }.padding(vertical = 10.dp)) {
+                Text(settings.weather?.name ?: "表示しない", color = colors.ink, fontSize = 16.sp)
+                Text("場所を選ぶ", color = colors.inkSoft, fontSize = 13.sp)
             }
         }
 
@@ -250,6 +273,9 @@ private fun LicensesScreen(onBack: () -> Unit) {
                 // La licencia va tal cual, en la fuente del teléfono: es para leerla, no para lucirla
                 Text(text, color = colors.inkSoft, fontSize = 11.sp, lineHeight = 15.sp, fontFamily = FontFamily.Default, modifier = Modifier.padding(top = 8.dp))
             }
+        }
+        Section("Open-Meteo", stringResource(R.string.license_weather_use), colors) {
+            Text(stringResource(R.string.license_weather), color = colors.inkSoft, fontSize = 13.sp, lineHeight = 19.sp, modifier = Modifier.padding(top = 8.dp))
         }
         Section("国民の祝日", stringResource(R.string.license_holidays_use), colors) {
             Text(stringResource(R.string.license_holidays), color = colors.inkSoft, fontSize = 13.sp, lineHeight = 19.sp, modifier = Modifier.padding(top = 8.dp))

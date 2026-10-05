@@ -50,6 +50,7 @@ import app.koyomi.ui.components.openEvent
 import app.koyomi.ui.components.rekichu
 import app.koyomi.ui.components.youbiColor
 import app.koyomi.ui.skin.palette
+import app.koyomi.ui.weather.WeatherPanel
 import app.koyomi.ui.skin.skin
 
 @Composable
@@ -95,6 +96,8 @@ private fun TodayContent(state: TodayUi, onDateClick: () -> Unit, onGrant: () ->
         if (state.settings.rekichu) {
             rekichu(state.today)?.let { Text(it, color = colors.inkSoft, fontSize = 14.sp, modifier = Modifier.padding(top = 4.dp, bottom = 8.dp)) }
         }
+
+        state.settings.weather?.let { WeatherPanel(it, state.settings.timeStyle) }
 
         val events = state.events
         if (events == null) {

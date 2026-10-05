@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="calendar_permission_rationale">Koyomi solo lee tu calendario para mostrarlo aquí. La app no tiene acceso a internet, así que nada sale de tu teléfono.</string>
+    <string name="calendar_permission_rationale">Koyomi solo lee tu calendario para mostrarlo aquí. Tus eventos nunca salen de tu teléfono.</string>
     <string name="calendar_permission_allow">Permitir acceso al calendario</string>
     <string name="nav_today">Hoy</string>
     <string name="nav_month">Mes</string>
@@ -19,7 +19,7 @@
     <string name="settings_week_start">Primer día de la semana</string>
     <string name="settings_calendars">Calendarios que se ven en Koyomi</string>
     <string name="settings_about">Sobre esta app</string>
-    <string name="settings_privacy">Koyomi lee tu calendario y nunca escribe en él. No tiene acceso a internet: nada de lo que ves aquí sale de tu teléfono.</string>
+    <string name="settings_privacy">Koyomi lee tu calendario y nunca escribe en él. Tus eventos nunca salen de tu teléfono. Lo único que usa internet es el tiempo, y solo si eliges una ciudad: se envían sus coordenadas a Open-Meteo.</string>
     <string name="settings_licenses">Fuentes y datos que usa Koyomi</string>
     <string name="license_dotgothic16_use">Fuente del tema RPG</string>
     <string name="license_zen_old_mincho_use">Fuente del tema 和風, recortada a los caracteres de uso corriente</string>
@@ -30,6 +30,16 @@
     <string name="widget_agenda_no_access">Abre Koyomi para permitir el acceso al calendario</string>
     <string name="widget_clock_name">Reloj</string>
     <string name="widget_clock_description">La hora en japonés, con la fecha debajo</string>
+    <string name="settings_weather">El tiempo de la ciudad que elijas</string>
+    <string name="weather_retry">Volver a intentarlo</string>
+    <string name="place_search">Cualquier ciudad, por su nombre</string>
+    <string name="place_presets">Ciudades de Japón</string>
+    <string name="place_off">Koyomi no usará internet</string>
+    <string name="widget_weather_name">Tiempo</string>
+    <string name="widget_weather_description">El tiempo de la ciudad que elegiste, en japonés</string>
+    <string name="widget_weather_no_place">Elige una ciudad en Koyomi</string>
+    <string name="license_weather_use">El tiempo y la búsqueda de ciudades</string>
+    <string name="license_weather">Datos meteorológicos de Open-Meteo.com, bajo CC BY 4.0. Su servicio gratuito es para uso no comercial.</string>
     <string name="widget_date_name">Fecha</string>
     <string name="widget_date_description">La fecha de hoy en japonés: era, día y día de la semana</string>
 </resources>

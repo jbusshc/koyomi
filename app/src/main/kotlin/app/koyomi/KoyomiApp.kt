@@ -7,7 +7,9 @@ import app.koyomi.calendar.DayEvent
 import app.koyomi.settings.SettingsStore
 import app.koyomi.widget.AgendaWidget
 import app.koyomi.widget.ClockWidget
+import app.koyomi.weather.WeatherRepository
 import app.koyomi.widget.DateWidget
+import app.koyomi.widget.WeatherWidget
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -20,6 +22,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.drop
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
@@ -38,6 +41,7 @@ class KoyomiApp : Application() {
     val appScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     val calendar by lazy { CalendarRepository(this) }
     val settings by lazy { SettingsStore(this) }
+    val weather by lazy { WeatherRepository(this) }
 
     // Sube al volver a la app: el permiso, la fecha o la zona pueden haber cambiado mientras tanto
     private val resumed = MutableStateFlow(0)
@@ -52,17 +56,27 @@ class KoyomiApp : Application() {
         appScope.launch {
             settings.settings.distinctUntilChanged().drop(1).collect { refreshWidgets() }
         }
+        // El tiempo: al elegir ciudad se pide el parte, y cuando llega se repinta su widget
+        appScope.launch {
+            settings.settings.map { it.weather }.distinctUntilChanged().drop(1).collect { weather.refresh(it) }
+        }
+        appScope.launch {
+            weather.report.drop(1).collect { WeatherWidget.refresh(this@KoyomiApp) }
+        }
     }
 
     fun onResume() {
         resumed.value++
         refreshWidgets()
+        // Con la app a la vista, el parte se pone al día si tiene más de una hora
+        appScope.launch { weather.refresh(settings.settings.first().weather) }
     }
 
     private fun refreshWidgets() {
         DateWidget.refresh(this)
         AgendaWidget.refresh(this)
         ClockWidget.refresh(this)
+        WeatherWidget.refresh(this)
     }
 
     /**
