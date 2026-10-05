@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="calendar_permission_rationale">Koyomi solo lee tu calendario para mostrarlo aquí. La app no tiene acceso a internet, así que nada sale de tu teléfono.</string>
+    <string name="calendar_permission_allow">Permitir acceso al calendario</string>
+</resources>

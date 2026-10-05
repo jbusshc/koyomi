@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!-- Sin INTERNET a propósito: lo que Koyomi lee del teléfono no puede salir de él -->
+    <!-- El único permiso. Sin INTERNET a propósito: lo que Koyomi lee del teléfono no puede salir de él -->
+    <uses-permission android:name="android.permission.READ_CALENDAR" />
 
     <application
         android:icon="@mipmap/ic_launcher"

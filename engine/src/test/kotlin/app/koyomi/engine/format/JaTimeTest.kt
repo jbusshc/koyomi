@@ -39,6 +39,7 @@ class JaTimeTest {
     fun `rangos con 〜`() {
         JaTime.range(LocalTime.of(9, 0), LocalTime.of(10, 30), TimeStyle.H24) shouldBe "09:00〜10:30"
         JaTime.range(LocalTime.of(14, 0), null, TimeStyle.H24) shouldBe "14:00〜"
+        JaTime.range(null, LocalTime.of(2, 0), TimeStyle.H24) shouldBe "〜02:00"
         JaTime.range(LocalTime.of(11, 0), LocalTime.of(13, 0), TimeStyle.GOZEN_GOGO) shouldBe "午前11:00〜午後1:00"
     }
 }

@@ -26,9 +26,9 @@ object JaTime {
         }
     }
 
-    /** 09:00〜10:30. Sin final (un evento sin duración): 09:00〜 */
-    fun range(start: LocalTime, end: LocalTime?, style: TimeStyle): String =
-        "${digits(start, style)}〜${end?.let { digits(it, style) } ?: ""}"
+    /** 09:00〜10:30. Sin final sigue al día siguiente (22:00〜); sin inicio viene del anterior (〜02:00). */
+    fun range(start: LocalTime?, end: LocalTime?, style: TimeStyle): String =
+        "${start?.let { digits(it, style) } ?: ""}〜${end?.let { digits(it, style) } ?: ""}"
 
     private fun prefix(time: LocalTime, style: TimeStyle): String = when {
         style == TimeStyle.H24 -> ""

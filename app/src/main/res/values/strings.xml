@@ -1,4 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Solo los textos de apoyo. Lo que la app dice en japonés (今日, 終日, 予定なし…) va en el código:
+     es el contenido, no se traduce. -->
 <resources>
     <string name="app_name" translatable="false">Koyomi</string>
+    <string name="calendar_permission_rationale">Koyomi only reads your calendar to show it here. The app has no internet access, so nothing leaves your phone.</string>
+    <string name="calendar_permission_allow">Allow calendar access</string>
 </resources>
