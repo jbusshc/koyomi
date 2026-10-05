@@ -13,8 +13,8 @@ android {
         targetSdk = 36
         // Como en Tateyoko: versionCode sube en uno con cada APK que se entrega; versionName es
         // 0.MENOR.PARCHE. La 1.0.0 es la de Play.
-        versionCode = 4
-        versionName = "0.4.0"
+        versionCode = 5
+        versionName = "0.4.1"
     }
 
     buildTypes {
@@ -22,6 +22,15 @@ android {
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+        }
+        // La build de publicación tal cual (R8 y recorte de recursos) pero con otro id y la firma de
+        // depuración: para el día a día, y para medir el rendimiento de verdad, que en depuración engaña
+        create("staging") {
+            initWith(getByName("release"))
+            applicationIdSuffix = ".staging"
+            versionNameSuffix = "-beta"
+            matchingFallbacks += "release"
+            signingConfig = signingConfigs.getByName("debug")
         }
     }
 

@@ -84,7 +84,7 @@ fun MonthScreen(viewModel: MonthViewModel = viewModel()) {
         )
         skin().Panel(Modifier.weight(1f).fillMaxWidth(), null) {
             WeekdayRow(settings.weekStart, colors)
-            HorizontalPager(state = pager, modifier = Modifier.weight(1f), beyondViewportPageCount = 1) { page ->
+            HorizontalPager(state = pager, modifier = Modifier.weight(1f)) { page ->
                 val month = origin.plusMonths((page - CENTER).toLong())
                 val events by remember(month, settings.weekStart) { viewModel.events(month, settings.weekStart) }
                     .collectAsStateWithLifecycle(initialValue = null)

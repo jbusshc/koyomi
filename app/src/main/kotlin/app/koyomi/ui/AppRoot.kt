@@ -10,10 +10,12 @@ import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
@@ -28,6 +30,38 @@ import app.koyomi.ui.skin.isDark
 import app.koyomi.ui.skin.palette
 import app.koyomi.ui.skin.skin
 import app.koyomi.ui.today.TodayScreen
+
+/**
+ * Las pantallas ya visitadas se quedan montadas, y solo se coloca la que toca. Volver a una es
+ * inmediato y conserva por dónde iba; montarla de cero cada vez se nota en un teléfono modesto.
+ */
+@Composable
+private fun Screens(current: Destination, modifier: Modifier) {
+    var visited by rememberSaveable { mutableStateOf(listOf(current)) }
+    if (current !in visited) visited = visited + current
+    Layout(
+        modifier = modifier,
+        content = {
+            for (destination in visited) {
+                key(destination) {
+                    Box {
+                        when (destination) {
+                            Destination.TODAY -> TodayScreen()
+                            Destination.MONTH -> MonthScreen()
+                            Destination.SETTINGS -> SettingsScreen()
+                        }
+                    }
+                }
+            }
+        },
+    ) { measurables, constraints ->
+        val placeables = measurables.map { it.measure(constraints) }
+        layout(constraints.maxWidth, constraints.maxHeight) {
+            // Lo que no se coloca ni se dibuja ni recibe toques
+            placeables.getOrNull(visited.indexOf(current))?.place(0, 0)
+        }
+    }
+}
 
 enum class Destination(val label: String, val gloss: Int) {
     TODAY("今日", R.string.nav_today),
@@ -63,13 +97,7 @@ fun AppRoot() {
 
     KoyomiTheme(settings) {
         Column(Modifier.fillMaxSize().background(palette().background).safeDrawingPadding()) {
-            Box(Modifier.weight(1f)) {
-                when (current) {
-                    Destination.TODAY -> TodayScreen()
-                    Destination.MONTH -> MonthScreen()
-                    Destination.SETTINGS -> SettingsScreen()
-                }
-            }
+            Screens(current, Modifier.weight(1f))
             skin().NavBar(current) { current = it }
         }
     }
