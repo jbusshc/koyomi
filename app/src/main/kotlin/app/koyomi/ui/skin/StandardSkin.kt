@@ -92,7 +92,7 @@ object StandardSkin : KoyomiSkin {
     }
 
     @Composable
-    override fun DateHeader(date: JaDateText, style: DateStyle, holiday: String?, modifier: Modifier) {
+    override fun DateHeader(date: JaDateText, style: DateStyle, holiday: String?, time: String, modifier: Modifier) {
         val colors = palette()
         Column(modifier.padding(top = 56.dp, bottom = 32.dp)) {
             if (style != DateStyle.SIMPLE) Text(date.year, color = colors.inkSoft, fontSize = 20.sp)
@@ -109,6 +109,7 @@ object StandardSkin : KoyomiSkin {
             if (holiday != null) {
                 Text(holiday, color = colors.sunday, fontSize = 16.sp, modifier = Modifier.padding(top = 8.dp))
             }
+            Text(time, color = colors.ink, fontSize = 22.sp, modifier = Modifier.padding(top = 14.dp))
         }
     }
 

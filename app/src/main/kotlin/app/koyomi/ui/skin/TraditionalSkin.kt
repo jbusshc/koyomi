@@ -107,7 +107,7 @@ object TraditionalSkin : KoyomiSkin {
     }
 
     @Composable
-    override fun DateHeader(date: JaDateText, style: DateStyle, holiday: String?, modifier: Modifier) {
+    override fun DateHeader(date: JaDateText, style: DateStyle, holiday: String?, time: String, modifier: Modifier) {
         val colors = palette()
         // En vertical los números van en kanji: 十月四日
         val kanji = JaDate.kanji(date.date)
@@ -117,6 +117,7 @@ object TraditionalSkin : KoyomiSkin {
             Column(Modifier.weight(1f).padding(top = 6.dp)) {
                 Text(wafu.kanji, color = colors.ink, fontSize = 26.sp)
                 Text(wafu.kana, color = colors.inkSoft, fontSize = 13.sp)
+                Text(time, color = colors.ink, fontSize = 22.sp, modifier = Modifier.padding(top = 18.dp))
                 date.secondLine(style)?.let { Text(it, color = colors.inkSoft, fontSize = 14.sp, modifier = Modifier.padding(top = 14.dp)) }
                 if (holiday != null) Text(holiday, color = colors.sunday, fontSize = 16.sp, modifier = Modifier.padding(top = 10.dp))
             }

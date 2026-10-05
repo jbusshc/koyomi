@@ -23,6 +23,12 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.produceState
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.repeatOnLifecycle
+import kotlinx.coroutines.delay
+import java.time.LocalTime
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -37,6 +43,7 @@ import app.koyomi.R
 import app.koyomi.calendar.CalendarInstance
 import app.koyomi.engine.format.DateStyle
 import app.koyomi.engine.format.JaDate
+import app.koyomi.engine.format.JaTime
 import app.koyomi.engine.holiday.Shukujitsu
 import app.koyomi.ui.components.DayEvents
 import app.koyomi.ui.components.openEvent
@@ -80,6 +87,7 @@ private fun TodayContent(state: TodayUi, onDateClick: () -> Unit, onGrant: () ->
             date = JaDate.of(state.today),
             style = state.settings.dateStyle,
             holiday = Shukujitsu.of(state.today),
+            time = JaTime.kanji(now(), state.settings.timeStyle),
             // Sin onda: la fecha cambia de forma, y eso ya dice que se ha tocado
             modifier = Modifier.fillMaxWidth().clickable(interactionSource = remember { MutableInteractionSource() }, indication = null, onClick = onDateClick),
         )
@@ -110,6 +118,22 @@ private fun TodayContent(state: TodayUi, onDateClick: () -> Unit, onGrant: () ->
         }
         Spacer(Modifier.height(32.dp))
     }
+}
+
+/** La hora, al minuto. Solo corre con la app a la vista. */
+@Composable
+private fun now(): LocalTime {
+    val lifecycle = LocalLifecycleOwner.current.lifecycle
+    val time by produceState(LocalTime.now(), lifecycle) {
+        lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
+            while (true) {
+                value = LocalTime.now()
+                // Hasta el siguiente cambio de minuto, y un poco más para no quedarse corto
+                delay(60_000 - System.currentTimeMillis() % 60_000 + 50)
+            }
+        }
+    }
+    return time
 }
 
 @Composable

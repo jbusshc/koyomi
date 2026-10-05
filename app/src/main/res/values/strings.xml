@@ -30,6 +30,8 @@
     <string name="widget_agenda_name">Agenda</string>
     <string name="widget_agenda_description">The date and what is left of today, with tomorrow if it fits</string>
     <string name="widget_agenda_no_access">Open Koyomi to allow calendar access</string>
+    <string name="widget_clock_name">Clock</string>
+    <string name="widget_clock_description">The time in Japanese, with the date below</string>
     <string name="widget_date_name">Date</string>
     <string name="widget_date_description">The date in Japanese: era, day and weekday</string>
 </resources>

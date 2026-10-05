@@ -28,6 +28,8 @@
     <string name="widget_agenda_name">Agenda</string>
     <string name="widget_agenda_description">La fecha y lo que queda de hoy, con mañana si cabe</string>
     <string name="widget_agenda_no_access">Abre Koyomi para permitir el acceso al calendario</string>
+    <string name="widget_clock_name">Reloj</string>
+    <string name="widget_clock_description">La hora en japonés, con la fecha debajo</string>
     <string name="widget_date_name">Fecha</string>
     <string name="widget_date_description">La fecha de hoy en japonés: era, día y día de la semana</string>
 </resources>

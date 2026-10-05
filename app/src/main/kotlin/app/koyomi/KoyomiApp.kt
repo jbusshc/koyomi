@@ -6,6 +6,7 @@ import app.koyomi.calendar.CalendarRepository
 import app.koyomi.calendar.DayEvent
 import app.koyomi.settings.SettingsStore
 import app.koyomi.widget.AgendaWidget
+import app.koyomi.widget.ClockWidget
 import app.koyomi.widget.DateWidget
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -61,6 +62,7 @@ class KoyomiApp : Application() {
     private fun refreshWidgets() {
         DateWidget.refresh(this)
         AgendaWidget.refresh(this)
+        ClockWidget.refresh(this)
     }
 
     /**

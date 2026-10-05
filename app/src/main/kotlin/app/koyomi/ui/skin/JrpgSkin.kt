@@ -112,13 +112,17 @@ object JrpgSkin : KoyomiSkin {
     }
 
     @Composable
-    override fun DateHeader(date: JaDateText, style: DateStyle, holiday: String?, modifier: Modifier) {
+    override fun DateHeader(date: JaDateText, style: DateStyle, holiday: String?, time: String, modifier: Modifier) {
         val colors = palette()
         val main = date.monthDay
         val youbi = "（${date.youbi.short}）"
         val shown = typed(main.length + youbi.length)
         Column(modifier.padding(top = 16.dp, bottom = 5.dp).window(colors).padding(horizontal = 16.dp, vertical = 14.dp)) {
-            if (style != DateStyle.SIMPLE) Text(date.year, color = colors.inkSoft, fontSize = 18.sp)
+            // Arriba, como en una ventana de estado: el año a un lado y la hora al otro
+            Row(Modifier.fillMaxWidth()) {
+                Text(if (style != DateStyle.SIMPLE) date.year else "", color = colors.inkSoft, fontSize = 18.sp, modifier = Modifier.weight(1f))
+                Text(time, color = colors.accent, fontSize = 18.sp)
+            }
             // La fecha se escribe letra a letra; lo que falta ya ocupa su sitio, para que nada salte
             Text(
                 buildAnnotatedString {

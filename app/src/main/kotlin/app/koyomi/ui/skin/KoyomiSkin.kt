@@ -60,9 +60,9 @@ interface KoyomiSkin {
     @Composable
     fun Panel(modifier: Modifier, title: (@Composable RowScope.() -> Unit)?, content: @Composable ColumnScope.() -> Unit)
 
-    /** La fecha de hoy, en grande: lo que más se ve de la app. */
+    /** La fecha de hoy, en grande: lo que más se ve de la app. [time]: la hora, ya escrita (午後9時32分). */
     @Composable
-    fun DateHeader(date: JaDateText, style: DateStyle, holiday: String?, modifier: Modifier)
+    fun DateHeader(date: JaDateText, style: DateStyle, holiday: String?, time: String, modifier: Modifier)
 
     /** El número de un día en la hoja del mes. */
     @Composable
