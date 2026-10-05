@@ -2,7 +2,6 @@
 <!-- Solo los textos de apoyo. Lo que la app dice en japonés (今日, 終日, 予定なし…) va en el código:
      es el contenido, no se traduce. -->
 <resources>
-    <string name="app_name" translatable="false">Koyomi</string>
     <string name="calendar_permission_rationale">Koyomi only reads your calendar to show it here. The app has no internet access, so nothing leaves your phone.</string>
     <string name="calendar_permission_allow">Allow calendar access</string>
     <string name="nav_today">Today</string>
@@ -23,6 +22,9 @@
     <string name="license_zen_old_mincho_use">Font of the 和風 theme, reduced to commonly used characters</string>
     <string name="license_holidays_use">Japanese national holidays</string>
     <string name="license_holidays">Holidays up to 2021 come from the table published by the Cabinet Office of Japan (内閣府, 「国民の祝日」について). From 2022 on they are calculated from the current law; the equinox days are an estimate until they are officially announced.</string>
+    <string name="widget_agenda_name">Agenda</string>
+    <string name="widget_agenda_description">The date and what is left of today, with tomorrow if it fits</string>
+    <string name="widget_agenda_no_access">Open Koyomi to allow calendar access</string>
     <string name="widget_date_name">Date</string>
     <string name="widget_date_description">The date in Japanese: era, day and weekday</string>
 </resources>

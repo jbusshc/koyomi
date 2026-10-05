@@ -5,6 +5,7 @@ import app.koyomi.calendar.Agenda
 import app.koyomi.calendar.CalendarRepository
 import app.koyomi.calendar.DayEvent
 import app.koyomi.settings.SettingsStore
+import app.koyomi.widget.AgendaWidget
 import app.koyomi.widget.DateWidget
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -46,17 +47,20 @@ class KoyomiApp : Application() {
 
     override fun onCreate() {
         super.onCreate()
-        // El widget sigue el tema, el modo y el formato de fecha: al cambiarlos, se repinta
+        // Los widgets siguen los ajustes (tema, modo, formatos, calendarios): al cambiarlos, se repintan
         appScope.launch {
-            settings.settings.map { Triple(it.skin, it.mode, it.dateStyle) }.distinctUntilChanged().drop(1).collect {
-                DateWidget.refresh(this@KoyomiApp)
-            }
+            settings.settings.distinctUntilChanged().drop(1).collect { refreshWidgets() }
         }
     }
 
     fun onResume() {
         resumed.value++
+        refreshWidgets()
+    }
+
+    private fun refreshWidgets() {
         DateWidget.refresh(this)
+        AgendaWidget.refresh(this)
     }
 
     /**

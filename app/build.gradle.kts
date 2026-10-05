@@ -13,8 +13,9 @@ android {
         targetSdk = 36
         // Como en Tateyoko: versionCode sube en uno con cada APK que se entrega; versionName es
         // 0.MENOR.PARCHE. La 1.0.0 es la de Play.
-        versionCode = 6
-        versionName = "0.5.0"
+        versionCode = 7
+        versionName = "0.6.0"
+        manifestPlaceholders["appLabel"] = "Koyomi"
     }
 
     buildTypes {
@@ -29,6 +30,8 @@ android {
             initWith(getByName("release"))
             applicationIdSuffix = ".staging"
             versionNameSuffix = "-beta"
+            // Otro nombre, para distinguirla de la de depuración cuando conviven en el teléfono
+            manifestPlaceholders["appLabel"] = "Koyomi β"
             matchingFallbacks += "release"
             signingConfig = signingConfigs.getByName("debug")
         }

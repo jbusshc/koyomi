@@ -7,8 +7,6 @@ import android.appwidget.AppWidgetProvider
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
-import android.content.res.Configuration
-import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Paint
 import android.os.Bundle
@@ -16,7 +14,6 @@ import android.view.View
 import android.widget.RemoteViews
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
-import androidx.core.content.res.ResourcesCompat
 import app.koyomi.KoyomiApp
 import app.koyomi.MainActivity
 import app.koyomi.R
@@ -26,14 +23,11 @@ import app.koyomi.engine.format.JaDateText
 import app.koyomi.engine.format.Youbi
 import app.koyomi.engine.holiday.Shukujitsu
 import app.koyomi.settings.SkinId
-import app.koyomi.settings.ThemeMode
-import app.koyomi.ui.skin.skinOf
 import app.koyomi.ui.theme.Palette
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.ZoneId
-import kotlin.math.roundToInt
 
 /**
  * La fecha de hoy en la pantalla de inicio del teléfono: 令和8年 / 10月4日 / 日曜日, y el festivo si
@@ -72,7 +66,7 @@ class DateWidget : AppWidgetProvider() {
     }
 
     /** Lo que el widget enseña, ya resuelto: las dos formas de pintarlo parten de lo mismo. */
-    private class Content(val date: JaDateText, val style: DateStyle, val holiday: String?, val colors: Palette) {
+    private class Content(val date: JaDateText, style: DateStyle, holiday: String?, val colors: Palette) {
         val year: String? = when (style) {
             DateStyle.SIMPLE -> null
             DateStyle.FULL -> date.year
@@ -103,30 +97,19 @@ class DateWidget : AppWidgetProvider() {
             val ids = ids(app)
             if (ids.isEmpty()) return
             val settings = app.settings.settings.first()
-            val dark = when (settings.mode) {
-                ThemeMode.SYSTEM -> app.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK == Configuration.UI_MODE_NIGHT_YES
-                ThemeMode.LIGHT -> false
-                ThemeMode.DARK -> true
-            }
+            val look = WidgetLook.of(app, settings)
             val today = LocalDate.now()
             // El tema tradicional escribe los números en kanji, como en la app
             val date = if (settings.skin == SkinId.TRADITIONAL) JaDate.kanji(today) else JaDate.of(today)
-            val content = Content(date, settings.dateStyle, Shukujitsu.of(today), skinOf(settings.skin).palette(dark))
+            val content = Content(date, settings.dateStyle, Shukujitsu.of(today), look.colors)
 
             val manager = AppWidgetManager.getInstance(app)
-            val open = PendingIntent.getActivity(
-                app,
-                1,
-                Intent(app, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP),
-                PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
-            )
             for (id in ids) {
                 val views = when (settings.skin) {
-                    SkinId.STANDARD -> standard(app, content, dark)
-                    SkinId.JRPG -> image(app, content, manager.getAppWidgetOptions(id), R.font.dotgothic16_regular, ::jrpgFrame)
-                    SkinId.TRADITIONAL -> image(app, content, manager.getAppWidgetOptions(id), R.font.zen_old_mincho_subset, ::traditionalFrame)
+                    SkinId.STANDARD -> standard(app, content, look.dark)
+                    SkinId.JRPG, SkinId.TRADITIONAL -> image(app, content, look, manager.getAppWidgetOptions(id))
                 }
-                views.setOnClickPendingIntent(R.id.widget_root, open)
+                views.setOnClickPendingIntent(R.id.widget_root, openApp(app))
                 manager.updateAppWidget(id, views)
             }
 
@@ -149,40 +132,30 @@ class DateWidget : AppWidgetProvider() {
             return views
         }
 
-        /**
-         * Un widget solo sabe escribir con las fuentes del teléfono, así que los temas con fuente
-         * propia se dibujan enteros en una imagen. Vale porque la fecha cambia una vez al día.
-         *
-         * [frame] pinta el fondo y devuelve cuánto hay que dejar libre hasta el texto por cada lado.
-         */
-        private fun image(context: Context, content: Content, options: Bundle, font: Int, frame: (Canvas, Float, Palette) -> Float): RemoteViews {
+        /** Los temas con fuente propia, dibujados enteros. Vale porque la fecha cambia una vez al día. */
+        private fun image(context: Context, content: Content, look: WidgetLook, options: Bundle): RemoteViews {
             val density = context.resources.displayMetrics.density
-            // En vertical el widget mide el ancho mínimo y el alto máximo que da el lanzador
-            val widthDp = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH).takeIf { it > 0 } ?: 160
-            val heightDp = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT).takeIf { it > 0 } ?: 80
-            val width = (widthDp * density).roundToInt()
-            val height = (heightDp * density).roundToInt()
-            val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+            val bitmap = WidgetLook.bitmap(context, options, fallbackWidthDp = 160, fallbackHeightDp = 80)
             val canvas = Canvas(bitmap)
             val colors = content.colors
-            val inset = frame(canvas, density, colors)
+            val inset = look.frame(canvas, density)
 
             val text = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                typeface = ResourcesCompat.getFont(context, font)
+                typeface = look.typeface
                 textAlign = Paint.Align.CENTER
             }
             val small = 13 * density
-            val inner = width - 2 * inset
+            val inner = bitmap.width - 2 * inset
             val lines = (if (content.year != null) 1 else 0) + 1
             // La fecha ocupa lo que dejan las líneas pequeñas, sin pasarse de ancho
-            var big = (height - 2 * inset - lines * small * 1.5f).coerceIn(14 * density, 44 * density)
+            var big = (bitmap.height - 2 * inset - lines * small * 1.5f).coerceIn(14 * density, 44 * density)
             text.textSize = big
             val dateWidth = text.measureText(content.date.monthDay)
             if (dateWidth > inner) big *= inner / dateWidth
 
             val total = lines * small * 1.5f + big * 1.15f
-            var y = (height - total) / 2
-            val centre = width / 2f
+            var y = (bitmap.height - total) / 2
+            val centre = bitmap.width / 2f
             fun line(value: String, size: Float, color: Color, advance: Float) {
                 text.textSize = size
                 text.color = color.toArgb()
@@ -198,46 +171,8 @@ class DateWidget : AppWidgetProvider() {
 
             val views = RemoteViews(context.packageName, R.layout.widget_date_image)
             views.setImageViewBitmap(R.id.widget_image, bitmap)
+            views.setContentDescription(R.id.widget_image, listOfNotNull(content.year, content.date.monthDay, content.youbi).joinToString(" "))
             return views
-        }
-
-        /** El mismo marco que en la app (JrpgSkin.window): borde con esquinas a escalón y línea fina dentro. */
-        private fun jrpgFrame(canvas: Canvas, density: Float, colors: Palette): Float {
-            val u = (2 * density).roundToInt().coerceAtLeast(1).toFloat()
-            val thin = (u / 2).roundToInt().coerceAtLeast(1).toFloat()
-            // Los lanzadores recortan el widget con esquinas redondas: la ventana se dibuja algo hacia
-            // dentro, para que el recorte caiga en lo transparente y no se coma el marco
-            val margin = (6 * density).roundToInt().toFloat()
-            val fill = Paint()
-            fun stepped(frameInset: Float, cut: Float, color: Color) {
-                val inset = margin + frameInset
-                fill.color = color.toArgb()
-                canvas.drawRect(inset + cut, inset, canvas.width - inset - cut, canvas.height - inset, fill)
-                canvas.drawRect(inset, inset + cut, canvas.width - inset, canvas.height - inset - cut, fill)
-            }
-            stepped(0f, u, colors.frame)
-            stepped(2 * u, u, colors.surface)
-            stepped(3 * u, 0f, colors.frame.copy(alpha = 0.3f))
-            stepped(3 * u + thin, 0f, colors.surface)
-            return margin + 6 * u
-        }
-
-        /** Una hoja de papel con un filete fino y un sello en la esquina. */
-        private fun traditionalFrame(canvas: Canvas, density: Float, colors: Palette): Float {
-            val radius = 14 * density
-            val paint = Paint(Paint.ANTI_ALIAS_FLAG)
-            paint.color = colors.background.toArgb()
-            canvas.drawRoundRect(0f, 0f, canvas.width.toFloat(), canvas.height.toFloat(), radius, radius, paint)
-            paint.color = colors.rule.toArgb()
-            paint.style = Paint.Style.STROKE
-            paint.strokeWidth = density
-            val line = 5 * density
-            canvas.drawRoundRect(line, line, canvas.width - line, canvas.height - line, radius - line / 2, radius - line / 2, paint)
-            paint.style = Paint.Style.FILL
-            paint.color = colors.accent.toArgb()
-            val seal = 6 * density
-            canvas.drawRect(canvas.width - 14 * density - seal, 14 * density, canvas.width - 14 * density, 14 * density + seal, paint)
-            return 12 * density
         }
 
         private fun newDay(context: Context): PendingIntent = PendingIntent.getBroadcast(
@@ -248,3 +183,11 @@ class DateWidget : AppWidgetProvider() {
         )
     }
 }
+
+/** Tocar un widget abre la app, o la trae al frente si ya estaba abierta. */
+internal fun openApp(context: Context): PendingIntent = PendingIntent.getActivity(
+    context,
+    1,
+    Intent(context, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP),
+    PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+)

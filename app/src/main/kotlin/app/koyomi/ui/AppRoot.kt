@@ -1,6 +1,10 @@
 package app.koyomi.ui
 
-import android.app.Activity
+import android.graphics.Color
+import androidx.activity.ComponentActivity
+import androidx.activity.SystemBarStyle
+import androidx.activity.compose.LocalActivity
+import androidx.activity.enableEdgeToEdge
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -17,8 +21,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalView
-import androidx.core.view.WindowCompat
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.koyomi.KoyomiApp
@@ -86,13 +88,11 @@ fun AppRoot() {
 
     // Los iconos de la barra de estado siguen al modo de la app, que puede no ser el del teléfono
     val dark = isDark(settings.mode)
-    val view = LocalView.current
+    val activity = LocalActivity.current as? ComponentActivity
     SideEffect {
-        val window = (view.context as? Activity)?.window ?: return@SideEffect
-        WindowCompat.getInsetsController(window, view).apply {
-            isAppearanceLightStatusBars = !dark
-            isAppearanceLightNavigationBars = !dark
-        }
+        // Barras transparentes: detrás se ve el fondo del tema, también bajo los botones del sistema
+        val style = if (dark) SystemBarStyle.dark(Color.TRANSPARENT) else SystemBarStyle.light(Color.TRANSPARENT, Color.TRANSPARENT)
+        activity?.enableEdgeToEdge(statusBarStyle = style, navigationBarStyle = style)
     }
 
     KoyomiTheme(settings) {

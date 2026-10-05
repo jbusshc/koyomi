@@ -20,6 +20,7 @@ import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.conflate
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.withContext
 import java.time.Instant
 
 /** Una repetición concreta de un evento, tal como la da el calendario del sistema. */
@@ -50,6 +51,9 @@ class CalendarRepository(private val context: Context) {
 
     /** Las instancias que tocan el rango, y de nuevo cada vez que el calendario cambia. */
     fun instances(from: Instant, to: Instant): Flow<List<CalendarInstance>> = changes().map { queryInstances(from, to) }.flowOn(Dispatchers.IO)
+
+    /** Lo mismo, una sola vez: para un widget, que se pinta y termina. */
+    suspend fun instancesOnce(from: Instant, to: Instant): List<CalendarInstance> = withContext(Dispatchers.IO) { queryInstances(from, to) }
 
     /** Los calendarios que el teléfono tiene a la vista, que son los que pueden traer eventos. */
     fun calendars(): Flow<List<DeviceCalendar>> = changes().map { queryCalendars() }.flowOn(Dispatchers.IO)

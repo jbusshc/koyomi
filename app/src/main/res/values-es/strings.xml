@@ -20,6 +20,9 @@
     <string name="license_zen_old_mincho_use">Fuente del tema 和風, recortada a los caracteres de uso corriente</string>
     <string name="license_holidays_use">Festivos nacionales de Japón</string>
     <string name="license_holidays">Los festivos hasta 2021 salen de la tabla que publica la Oficina del Gabinete de Japón (内閣府, 「国民の祝日」について). Desde 2022 se calculan con la ley vigente; los días de equinoccio son una estimación hasta que se anuncian oficialmente.</string>
+    <string name="widget_agenda_name">Agenda</string>
+    <string name="widget_agenda_description">La fecha y lo que queda de hoy, con mañana si cabe</string>
+    <string name="widget_agenda_no_access">Abre Koyomi para permitir el acceso al calendario</string>
     <string name="widget_date_name">Fecha</string>
     <string name="widget_date_description">La fecha de hoy en japonés: era, día y día de la semana</string>
 </resources>
