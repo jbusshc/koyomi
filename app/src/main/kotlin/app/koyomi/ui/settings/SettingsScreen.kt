@@ -1,10 +1,7 @@
 package app.koyomi.ui.settings
 
 import android.app.Application
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -12,10 +9,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -25,7 +19,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -43,8 +36,11 @@ import app.koyomi.engine.format.JaTime
 import app.koyomi.engine.format.TimeStyle
 import app.koyomi.engine.format.Youbi
 import app.koyomi.settings.Settings
+import app.koyomi.settings.SkinId
+import app.koyomi.settings.ThemeMode
+import app.koyomi.ui.skin.palette
+import app.koyomi.ui.skin.skin
 import app.koyomi.ui.theme.Palette
-import app.koyomi.ui.theme.palette
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -72,6 +68,10 @@ class SettingsViewModel(app: Application) : AndroidViewModel(app) {
             .flatMapLatest { access -> if (access) koyomi.calendar.calendars() else flowOf(emptyList()) }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
+    fun setSkin(skin: SkinId) = viewModelScope.launch { store.setSkin(skin) }
+
+    fun setMode(mode: ThemeMode) = viewModelScope.launch { store.setMode(mode) }
+
     fun setDateStyle(style: DateStyle) = viewModelScope.launch { store.setDateStyle(style) }
 
     fun setTimeStyle(style: TimeStyle) = viewModelScope.launch { store.setTimeStyle(style) }
@@ -92,49 +92,78 @@ fun SettingsScreen(viewModel: SettingsViewModel = viewModel()) {
     val date = JaDate.of(today)
     val sample = LocalTime.of(21, 30)
 
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 24.dp)) {
-        Text("設定", color = colors.ink, fontSize = 28.sp, fontWeight = FontWeight.Medium, modifier = Modifier.padding(top = 28.dp))
+    val skin = skin()
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = skin.screenPadding)) {
+        Text("設定", color = colors.ink, fontSize = 28.sp, fontWeight = skin.strong, modifier = Modifier.padding(top = 28.dp, bottom = 4.dp))
 
-        Section("日付の表示", stringResource(R.string.settings_date_style), colors)
-        Choice("シンプル", date.line(DateStyle.SIMPLE), settings.dateStyle == DateStyle.SIMPLE, colors) { viewModel.setDateStyle(DateStyle.SIMPLE) }
-        Choice("和暦", date.line(DateStyle.FULL), settings.dateStyle == DateStyle.FULL, colors) { viewModel.setDateStyle(DateStyle.FULL) }
-        Choice("和暦と西暦", date.line(DateStyle.FULL) + "\n" + date.seireki,settings.dateStyle == DateStyle.EDUCATIONAL, colors) {
-            viewModel.setDateStyle(DateStyle.EDUCATIONAL)
+        Section("テーマ", stringResource(R.string.settings_theme), colors) {
+            Choice("スタンダード", null, settings.skin == SkinId.STANDARD, colors) { viewModel.setSkin(SkinId.STANDARD) }
+            Choice("RPG", null, settings.skin == SkinId.JRPG, colors) { viewModel.setSkin(SkinId.JRPG) }
         }
 
-        Section("時刻の表示", stringResource(R.string.settings_time_style), colors)
-        Choice("24時間", JaTime.digits(sample, TimeStyle.H24), settings.timeStyle == TimeStyle.H24, colors) { viewModel.setTimeStyle(TimeStyle.H24) }
-        Choice("午前・午後", JaTime.digits(sample, TimeStyle.GOZEN_GOGO), settings.timeStyle == TimeStyle.GOZEN_GOGO, colors) {
-            viewModel.setTimeStyle(TimeStyle.GOZEN_GOGO)
+        Section("明るさ", stringResource(R.string.settings_mode), colors) {
+            Choice("端末に合わせる", stringResource(R.string.settings_mode_system), settings.mode == ThemeMode.SYSTEM, colors) { viewModel.setMode(ThemeMode.SYSTEM) }
+            Choice("ライト", null, settings.mode == ThemeMode.LIGHT, colors) { viewModel.setMode(ThemeMode.LIGHT) }
+            Choice("ダーク", null, settings.mode == ThemeMode.DARK, colors) { viewModel.setMode(ThemeMode.DARK) }
         }
 
-        Section("週の始まり", stringResource(R.string.settings_week_start), colors)
-        for (day in listOf(Youbi.NICHI, Youbi.GETSU)) {
-            Choice(day.full, null, settings.weekStart == day, colors) { viewModel.setWeekStart(day) }
-        }
-
-        if (calendars.isNotEmpty()) {
-            Section("カレンダー", stringResource(R.string.settings_calendars), colors)
-            for (calendar in calendars) {
-                val shown = calendar.id !in settings.hiddenCalendars
-                CalendarRow(calendar, shown, colors) { viewModel.setCalendarShown(calendar.id, !shown) }
+        Section("日付の表示", stringResource(R.string.settings_date_style), colors) {
+            Choice("シンプル", date.line(DateStyle.SIMPLE), settings.dateStyle == DateStyle.SIMPLE, colors) { viewModel.setDateStyle(DateStyle.SIMPLE) }
+            Choice("和暦", date.line(DateStyle.FULL), settings.dateStyle == DateStyle.FULL, colors) { viewModel.setDateStyle(DateStyle.FULL) }
+            Choice("和暦と西暦", date.line(DateStyle.FULL) + "\n" + date.seireki, settings.dateStyle == DateStyle.EDUCATIONAL, colors) {
+                viewModel.setDateStyle(DateStyle.EDUCATIONAL)
             }
         }
 
-        Section("このアプリについて", stringResource(R.string.settings_about), colors)
-        Text("Koyomi ${BuildConfig.VERSION_NAME}", color = colors.ink, fontSize = 16.sp, modifier = Modifier.padding(vertical = 10.dp))
-        Text(stringResource(R.string.settings_privacy), color = colors.inkSoft, fontSize = 13.sp, lineHeight = 19.sp)
+        Section("時刻の表示", stringResource(R.string.settings_time_style), colors) {
+            Choice("24時間", JaTime.digits(sample, TimeStyle.H24), settings.timeStyle == TimeStyle.H24, colors) { viewModel.setTimeStyle(TimeStyle.H24) }
+            Choice("午前・午後", JaTime.digits(sample, TimeStyle.GOZEN_GOGO), settings.timeStyle == TimeStyle.GOZEN_GOGO, colors) {
+                viewModel.setTimeStyle(TimeStyle.GOZEN_GOGO)
+            }
+        }
+
+        Section("週の始まり", stringResource(R.string.settings_week_start), colors) {
+            for (day in listOf(Youbi.NICHI, Youbi.GETSU)) {
+                Choice(day.full, null, settings.weekStart == day, colors) { viewModel.setWeekStart(day) }
+            }
+        }
+
+        if (calendars.isNotEmpty()) {
+            Section("カレンダー", stringResource(R.string.settings_calendars), colors) {
+                for (calendar in calendars) {
+                    val shown = calendar.id !in settings.hiddenCalendars
+                    CalendarRow(calendar, shown, colors) { viewModel.setCalendarShown(calendar.id, !shown) }
+                }
+            }
+        }
+
+        Section("このアプリについて", stringResource(R.string.settings_about), colors) {
+            Text("Koyomi ${BuildConfig.VERSION_NAME}", color = colors.ink, fontSize = 16.sp, modifier = Modifier.padding(vertical = 10.dp))
+            Text(stringResource(R.string.settings_privacy), color = colors.inkSoft, fontSize = 13.sp, lineHeight = 19.sp)
+            Text(
+                "フォント: DotGothic16 © The DotGothic16 Project Authors · SIL Open Font License 1.1",
+                color = colors.inkSoft,
+                fontSize = 12.sp,
+                lineHeight = 17.sp,
+                modifier = Modifier.padding(top = 10.dp),
+            )
+        }
         Spacer(Modifier.height(40.dp))
     }
 }
 
 @Composable
-private fun Section(title: String, gloss: String, colors: Palette) {
-    Column(Modifier.padding(top = 32.dp, bottom = 6.dp)) {
-        Text(title, color = colors.ink, fontSize = 17.sp, fontWeight = FontWeight.Medium)
-        Text(gloss, color = colors.inkSoft, fontSize = 12.sp)
-        Box(Modifier.padding(top = 8.dp).fillMaxWidth().height(1.dp).background(colors.rule))
-    }
+private fun Section(title: String, gloss: String, colors: Palette, content: @Composable () -> Unit) {
+    val skin = skin()
+    skin.Panel(
+        Modifier.fillMaxWidth(),
+        title = {
+            Column {
+                Text(title, color = colors.ink, fontSize = 17.sp, fontWeight = skin.strong)
+                Text(gloss, color = colors.inkSoft, fontSize = 12.sp)
+            }
+        },
+    ) { content() }
 }
 
 @Composable
@@ -142,12 +171,12 @@ private fun Choice(label: String, example: String?, selected: Boolean, colors: P
     Row(
         Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(8.dp))
+            .clip(skin().buttonShape)
             .clickable(onClick = onClick)
             .padding(vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Mark(selected, colors.ink, colors)
+        skin().Mark(selected, null)
         Column(Modifier.padding(start = 14.dp)) {
             Text(label, color = colors.ink, fontSize = 16.sp)
             if (example != null) Text(example, color = colors.inkSoft, fontSize = 13.sp)
@@ -160,12 +189,12 @@ private fun CalendarRow(calendar: DeviceCalendar, shown: Boolean, colors: Palett
     Row(
         Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(8.dp))
+            .clip(skin().buttonShape)
             .clickable(onClick = onClick)
             .padding(vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Mark(shown, if (calendar.color == 0) colors.ink else Color(calendar.color).copy(alpha = 1f), colors)
+        skin().Mark(shown, if (calendar.color == 0) colors.ink else Color(calendar.color).copy(alpha = 1f))
         Column(Modifier.padding(start = 14.dp)) {
             Text(calendar.name, color = colors.ink, fontSize = 16.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
             if (calendar.account != calendar.name) {
@@ -173,14 +202,4 @@ private fun CalendarRow(calendar: DeviceCalendar, shown: Boolean, colors: Palett
             }
         }
     }
-}
-
-@Composable
-private fun Mark(on: Boolean, color: Color, colors: Palette) {
-    Box(
-        Modifier
-            .size(18.dp)
-            .clip(CircleShape)
-            .then(if (on) Modifier.background(color) else Modifier.border(1.5.dp, colors.inkSoft, CircleShape)),
-    )
 }

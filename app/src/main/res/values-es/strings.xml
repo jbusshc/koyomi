@@ -6,6 +6,9 @@
     <string name="nav_month">Mes</string>
     <string name="nav_settings">Ajustes</string>
     <string name="add_event_hint">Añadir un evento en tu app de calendario</string>
+    <string name="settings_theme">Aspecto de la app</string>
+    <string name="settings_mode">Claro u oscuro</string>
+    <string name="settings_mode_system">Igual que el teléfono</string>
     <string name="settings_date_style">Cómo se escriben las fechas</string>
     <string name="settings_time_style">Cómo se escriben las horas</string>
     <string name="settings_week_start">Primer día de la semana</string>

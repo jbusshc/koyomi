@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -31,6 +30,7 @@ import app.koyomi.engine.format.JaTime
 import app.koyomi.engine.format.TimeStyle
 import app.koyomi.engine.format.Youbi
 import app.koyomi.engine.span.DayPart
+import app.koyomi.ui.skin.skin
 import app.koyomi.ui.theme.Palette
 import java.time.LocalDate
 import java.time.ZoneId
@@ -60,7 +60,7 @@ fun EventRow(event: DayEvent, timeStyle: TimeStyle, colors: Palette, onOpen: (Ca
             Modifier
                 .padding(top = 7.dp, end = 12.dp)
                 .size(8.dp)
-                .clip(CircleShape)
+                .clip(skin().dot)
                 .background(eventColor(instance, colors)),
         )
         Text(

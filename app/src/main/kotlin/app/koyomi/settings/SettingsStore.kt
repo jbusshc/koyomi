@@ -11,7 +11,13 @@ import app.koyomi.engine.format.Youbi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
+enum class SkinId { STANDARD, JRPG }
+
+enum class ThemeMode { SYSTEM, LIGHT, DARK }
+
 data class Settings(
+    val skin: SkinId = SkinId.STANDARD,
+    val mode: ThemeMode = ThemeMode.SYSTEM,
     val dateStyle: DateStyle = DateStyle.EDUCATIONAL,
     val timeStyle: TimeStyle = TimeStyle.H24,
     /** 日 o 月: el primer día de la semana en la vista mensual. */
@@ -27,12 +33,18 @@ class SettingsStore(private val context: Context) {
     val settings: Flow<Settings> = context.dataStore.data.map { prefs ->
         val defaults = Settings()
         Settings(
+            skin = enumOr(prefs[SKIN], defaults.skin),
+            mode = enumOr(prefs[MODE], defaults.mode),
             dateStyle = enumOr(prefs[DATE_STYLE], defaults.dateStyle),
             timeStyle = enumOr(prefs[TIME_STYLE], defaults.timeStyle),
             weekStart = enumOr(prefs[WEEK_START], defaults.weekStart),
             hiddenCalendars = prefs[HIDDEN_CALENDARS].orEmpty().mapNotNull { it.toLongOrNull() }.toSet(),
         )
     }
+
+    suspend fun setSkin(skin: SkinId) = context.dataStore.edit { it[SKIN] = skin.name }
+
+    suspend fun setMode(mode: ThemeMode) = context.dataStore.edit { it[MODE] = mode.name }
 
     suspend fun setDateStyle(style: DateStyle) = context.dataStore.edit { it[DATE_STYLE] = style.name }
 
@@ -46,6 +58,8 @@ class SettingsStore(private val context: Context) {
     }
 
     private companion object {
+        val SKIN = stringPreferencesKey("skin")
+        val MODE = stringPreferencesKey("mode")
         val DATE_STYLE = stringPreferencesKey("date_style")
         val TIME_STYLE = stringPreferencesKey("time_style")
         val WEEK_START = stringPreferencesKey("week_start")

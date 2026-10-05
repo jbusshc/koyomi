@@ -17,11 +17,13 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 import java.time.Duration
 import java.time.LocalDate
 import java.time.ZoneId
@@ -40,6 +42,16 @@ class KoyomiApp : Application() {
 
     val now: StateFlow<Now> by lazy {
         combine(midnights(), resumed) { _, _ -> readNow() }.stateIn(appScope, SharingStarted.Eagerly, readNow())
+    }
+
+    override fun onCreate() {
+        super.onCreate()
+        // El widget sigue el tema, el modo y el formato de fecha: al cambiarlos, se repinta
+        appScope.launch {
+            settings.settings.map { Triple(it.skin, it.mode, it.dateStyle) }.distinctUntilChanged().drop(1).collect {
+                DateWidget.refresh(this@KoyomiApp)
+            }
+        }
     }
 
     fun onResume() {

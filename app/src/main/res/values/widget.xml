@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Los colores del tema Standard, otra vez: un widget no puede leer los de Compose -->
+<!-- Solo para la muestra del selector de widgets: los colores de verdad los pone DateWidget -->
 <resources>
     <color name="widget_paper">#FAFAF7</color>
     <color name="widget_ink">#22252B</color>

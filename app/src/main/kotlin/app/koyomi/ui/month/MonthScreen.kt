@@ -14,11 +14,10 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ModalBottomSheet
@@ -35,7 +34,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -56,7 +54,8 @@ import app.koyomi.ui.components.newEvent
 import app.koyomi.ui.components.openEvent
 import app.koyomi.ui.components.youbiColor
 import app.koyomi.ui.theme.Palette
-import app.koyomi.ui.theme.palette
+import app.koyomi.ui.skin.palette
+import app.koyomi.ui.skin.skin
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.YearMonth
@@ -83,12 +82,14 @@ fun MonthScreen(viewModel: MonthViewModel = viewModel()) {
             colors = colors,
             onToday = { scope.launch { pager.animateScrollToPage(CENTER + monthsBetween(origin, YearMonth.from(today))) } },
         )
-        WeekdayRow(settings.weekStart, colors)
-        HorizontalPager(state = pager, modifier = Modifier.weight(1f), beyondViewportPageCount = 1) { page ->
-            val month = origin.plusMonths((page - CENTER).toLong())
-            val events by remember(month, settings.weekStart) { viewModel.events(month, settings.weekStart) }
-                .collectAsStateWithLifecycle(initialValue = null)
-            MonthPage(month, settings.weekStart, today, events.orEmpty(), colors, onDay = { selected = it })
+        skin().Panel(Modifier.weight(1f).fillMaxWidth(), null) {
+            WeekdayRow(settings.weekStart, colors)
+            HorizontalPager(state = pager, modifier = Modifier.weight(1f), beyondViewportPageCount = 1) { page ->
+                val month = origin.plusMonths((page - CENTER).toLong())
+                val events by remember(month, settings.weekStart) { viewModel.events(month, settings.weekStart) }
+                    .collectAsStateWithLifecycle(initialValue = null)
+                MonthPage(month, settings.weekStart, today, events.orEmpty(), colors, onDay = { selected = it })
+            }
         }
     }
 
@@ -113,7 +114,7 @@ private fun MonthHeader(month: YearMonth, style: DateStyle, isCurrent: Boolean, 
                 if (style == DateStyle.SIMPLE) "${month.year}年${month.monthValue}月" else JaDate.monthHeader(month.year, month.monthValue),
                 color = colors.ink,
                 fontSize = 28.sp,
-                fontWeight = FontWeight.Medium,
+                fontWeight = skin().strong,
             )
             if (style == DateStyle.EDUCATIONAL) Text("${month.year}年", color = colors.inkSoft, fontSize = 14.sp)
         }
@@ -172,17 +173,7 @@ private fun DayCell(day: LocalDate, inMonth: Boolean, isToday: Boolean, events: 
     // Los días de los meses vecinos se ven, pero apagados
     val fade = if (inMonth) 1f else 0.35f
     Column(modifier.padding(top = 6.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-        Box(
-            Modifier.size(28.dp).clip(CircleShape).background(if (isToday) colors.ink else androidx.compose.ui.graphics.Color.Transparent),
-            contentAlignment = Alignment.Center,
-        ) {
-            Text(
-                day.dayOfMonth.toString(),
-                color = if (isToday) colors.background else color.copy(alpha = fade),
-                fontSize = 15.sp,
-                fontWeight = if (isToday) FontWeight.Bold else FontWeight.Normal,
-            )
-        }
+        skin().DayNumber(day.dayOfMonth, color.copy(alpha = fade), isToday)
         if (holiday != null) {
             Text(
                 holiday,
@@ -191,14 +182,15 @@ private fun DayCell(day: LocalDate, inMonth: Boolean, isToday: Boolean, events: 
                 lineHeight = 11.sp,
                 maxLines = 1,
                 softWrap = false,
-                overflow = TextOverflow.Clip,
-                modifier = Modifier.padding(horizontal = 1.dp),
+                overflow = TextOverflow.Visible,
+                // スポーツの日 no cabe en una celda: se deja asomar a las vecinas antes que cortarlo
+                modifier = Modifier.wrapContentWidth(unbounded = true),
             )
         }
         if (events.isNotEmpty()) {
             Row(Modifier.padding(top = 4.dp), horizontalArrangement = Arrangement.spacedBy(3.dp)) {
                 for (event in events.take(3)) {
-                    Box(Modifier.size(5.dp).clip(CircleShape).background(eventColor(event.instance, colors).copy(alpha = fade)))
+                    Box(Modifier.size(5.dp).clip(skin().dot).background(eventColor(event.instance, colors).copy(alpha = fade)))
                 }
             }
         }
@@ -212,17 +204,24 @@ private fun DaySheet(day: LocalDate, settings: Settings, viewModel: MonthViewMod
     val events by remember(day) { viewModel.events(day) }.collectAsStateWithLifecycle(initialValue = null)
     val date = JaDate.of(day)
     val holiday = Shukujitsu.of(day)
-    ModalBottomSheet(onDismissRequest = onDismiss, containerColor = colors.surface, contentColor = colors.ink) {
-        Column(
+    val skin = skin()
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        containerColor = skin.sheetColor(colors),
+        contentColor = colors.ink,
+        shape = skin.sheetShape,
+    ) {
+        skin.Panel(
             Modifier
                 .fillMaxWidth()
                 .verticalScroll(rememberScrollState())
                 .navigationBarsPadding()
-                .padding(start = 24.dp, end = 24.dp, bottom = 24.dp),
+                .padding(start = skin.screenPadding, end = skin.screenPadding, bottom = 24.dp),
+            null,
         ) {
             if (settings.dateStyle != DateStyle.SIMPLE) Text(date.year, color = colors.inkSoft, fontSize = 15.sp)
             Row(verticalAlignment = Alignment.Bottom) {
-                Text(date.monthDay, color = colors.ink, fontSize = 28.sp, fontWeight = FontWeight.Medium)
+                Text(date.monthDay, color = colors.ink, fontSize = 28.sp, fontWeight = skin.strong)
                 Text("（${date.youbi.short}）", color = youbiColor(date.youbi, holiday != null, colors), fontSize = 20.sp, modifier = Modifier.padding(bottom = 2.dp))
             }
             if (holiday != null) Text(holiday, color = colors.sunday, fontSize = 15.sp, modifier = Modifier.padding(top = 4.dp))
@@ -233,7 +232,7 @@ private fun DaySheet(day: LocalDate, settings: Settings, viewModel: MonthViewMod
             Column(
                 Modifier
                     .padding(top = 12.dp)
-                    .clip(RoundedCornerShape(8.dp))
+                    .clip(skin.buttonShape)
                     .clickable { context.newEvent(day) }
                     .padding(vertical = 8.dp, horizontal = 4.dp),
             ) {

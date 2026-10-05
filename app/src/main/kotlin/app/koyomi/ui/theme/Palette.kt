@@ -1,13 +1,11 @@
 package app.koyomi.ui.theme
 
-import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 
-// Los colores del tema Standard, sueltos por ahora. Cuando llegue el segundo tema (H4) pasan a ser
-// los tokens de su skin.
+/** Los colores de un tema en uno de sus dos modos. */
 data class Palette(
     val background: Color,
+    /** Lo que se levanta del fondo: una tarjeta, el panel de un día, la ventana de un tema con marcos. */
     val surface: Color,
     val ink: Color,
     val inkSoft: Color,
@@ -16,28 +14,8 @@ data class Palette(
     val sunday: Color,
     /** 土 */
     val saturday: Color,
-) {
-    companion object {
-        val Light = Palette(
-            background = Color(0xFFFAFAF7),
-            surface = Color(0xFFFFFFFF),
-            ink = Color(0xFF22252B),
-            inkSoft = Color(0xFF6B6F78),
-            rule = Color(0xFFE4E2DC),
-            sunday = Color(0xFFC8372D),
-            saturday = Color(0xFF2F5FA8),
-        )
-        val Dark = Palette(
-            background = Color(0xFF121316),
-            surface = Color(0xFF1B1D22),
-            ink = Color(0xFFECEAE4),
-            inkSoft = Color(0xFF9A9DA6),
-            rule = Color(0xFF2B2E35),
-            sunday = Color(0xFFE5766C),
-            saturday = Color(0xFF7FA6E0),
-        )
-    }
-}
-
-@Composable
-fun palette(): Palette = if (isSystemInDarkTheme()) Palette.Dark else Palette.Light
+    /** Lo que señala: el cursor, la opción elegida. */
+    val accent: Color,
+    /** El marco de las ventanas, en los temas que las tienen. */
+    val frame: Color,
+)

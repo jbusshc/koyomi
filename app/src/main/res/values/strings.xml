@@ -9,6 +9,9 @@
     <string name="nav_month">Month</string>
     <string name="nav_settings">Settings</string>
     <string name="add_event_hint">Add an event in your calendar app</string>
+    <string name="settings_theme">Look of the app</string>
+    <string name="settings_mode">Light or dark</string>
+    <string name="settings_mode_system">Same as the phone</string>
     <string name="settings_date_style">How dates are written</string>
     <string name="settings_time_style">How times are written</string>
     <string name="settings_week_start">First day of the week</string>

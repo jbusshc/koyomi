@@ -12,29 +12,22 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.app.ActivityCompat
@@ -42,19 +35,14 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import app.koyomi.R
 import app.koyomi.calendar.CalendarInstance
-import app.koyomi.calendar.DayEvent
 import app.koyomi.engine.format.DateStyle
 import app.koyomi.engine.format.JaDate
 import app.koyomi.engine.holiday.Shukujitsu
-import app.koyomi.engine.span.DayPart
-import app.koyomi.settings.Settings
 import app.koyomi.ui.components.DayEvents
 import app.koyomi.ui.components.openEvent
 import app.koyomi.ui.components.youbiColor
-import app.koyomi.ui.theme.Palette
-import app.koyomi.ui.theme.palette
-import java.time.LocalDate
-import java.time.LocalTime
+import app.koyomi.ui.skin.palette
+import app.koyomi.ui.skin.skin
 
 @Composable
 fun TodayScreen(viewModel: TodayViewModel = viewModel()) {
@@ -80,87 +68,68 @@ fun TodayScreen(viewModel: TodayViewModel = viewModel()) {
 @Composable
 private fun TodayContent(state: TodayUi, onDateClick: () -> Unit, onGrant: () -> Unit, onOpen: (CalendarInstance) -> Unit) {
     val colors = palette()
+    val skin = skin()
     Column(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(horizontal = 24.dp),
+            .padding(horizontal = skin.screenPadding),
     ) {
-        DateHeader(state.today, state.settings.dateStyle, colors, onDateClick)
+        skin.DateHeader(
+            date = JaDate.of(state.today),
+            style = state.settings.dateStyle,
+            holiday = Shukujitsu.of(state.today),
+            // Sin onda: la fecha cambia de forma, y eso ya dice que se ha tocado
+            modifier = Modifier.fillMaxWidth().clickable(interactionSource = remember { MutableInteractionSource() }, indication = null, onClick = onDateClick),
+        )
 
         val events = state.events
         if (events == null) {
-            PermissionCard(colors, onGrant)
+            PermissionPanel(onGrant)
         } else {
-            DayEvents(events[state.today].orEmpty(), state.settings.timeStyle, colors, onOpen)
-            DayLabel(state.tomorrow, colors)
-            DayEvents(events[state.tomorrow].orEmpty(), state.settings.timeStyle, colors, onOpen)
+            skin.Panel(Modifier.fillMaxWidth(), null) {
+                DayEvents(events[state.today].orEmpty(), state.settings.timeStyle, colors, onOpen)
+            }
+            val tomorrow = JaDate.of(state.tomorrow)
+            val holiday = Shukujitsu.of(state.tomorrow)
+            skin.Panel(
+                Modifier.fillMaxWidth(),
+                title = {
+                    Text("明日", color = colors.ink, fontSize = 16.sp, fontWeight = skin.strong)
+                    Text(tomorrow.line(DateStyle.SIMPLE), color = youbiColor(tomorrow.youbi, holiday != null, colors, other = colors.inkSoft), fontSize = 14.sp)
+                    if (holiday != null) Text(holiday, color = colors.sunday, fontSize = 14.sp)
+                },
+            ) {
+                DayEvents(events[state.tomorrow].orEmpty(), state.settings.timeStyle, colors, onOpen)
+            }
         }
         Spacer(Modifier.height(32.dp))
     }
 }
 
 @Composable
-private fun DateHeader(today: LocalDate, style: DateStyle, colors: Palette, onClick: () -> Unit) {
-    val date = JaDate.of(today)
-    val holiday = Shukujitsu.of(today)
-    Column(
-        Modifier
-            .padding(top = 56.dp, bottom = 32.dp)
-            // Sin onda: la fecha cambia de forma, y eso ya dice que se ha tocado
-            .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null, onClick = onClick),
+private fun PermissionPanel(onGrant: () -> Unit) {
+    val colors = palette()
+    val skin = skin()
+    skin.Panel(
+        Modifier.fillMaxWidth(),
+        title = { Text("カレンダーへのアクセス", color = colors.ink, fontSize = 17.sp, fontWeight = skin.strong) },
     ) {
-        if (style != DateStyle.SIMPLE) Text(date.year, color = colors.inkSoft, fontSize = 20.sp)
-        Row(verticalAlignment = Alignment.Bottom) {
-            Text(date.monthDay, color = colors.ink, fontSize = 48.sp, fontWeight = FontWeight.Medium)
-            Text(
-                "（${date.youbi.short}）",
-                color = youbiColor(date.youbi, holiday != null, colors),
-                fontSize = 28.sp,
-                modifier = Modifier.padding(bottom = 7.dp),
-            )
-        }
-        date.secondLine(style)?.let { Text(it, color = colors.inkSoft, fontSize = 14.sp) }
-        if (holiday != null) {
-            Text(holiday, color = colors.sunday, fontSize = 16.sp, modifier = Modifier.padding(top = 8.dp))
-        }
-    }
-}
-
-@Composable
-private fun DayLabel(day: LocalDate, colors: Palette) {
-    val date = JaDate.of(day)
-    val holiday = Shukujitsu.of(day)
-    Column(Modifier.padding(top = 28.dp, bottom = 4.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            Text("明日", color = colors.ink, fontSize = 16.sp, fontWeight = FontWeight.Medium)
-            Text(date.line(DateStyle.SIMPLE), color = youbiColor(date.youbi, holiday != null, colors, other = colors.inkSoft), fontSize = 14.sp)
-            if (holiday != null) Text(holiday, color = colors.sunday, fontSize = 14.sp)
-        }
-        Box(Modifier.padding(top = 8.dp).fillMaxWidth().height(1.dp).background(colors.rule))
-    }
-}
-
-@Composable
-private fun PermissionCard(colors: Palette, onGrant: () -> Unit) {
-    Column(
-        Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
-            .background(colors.surface)
-            .padding(20.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        Text("カレンダーへのアクセス", color = colors.ink, fontSize = 17.sp, fontWeight = FontWeight.Medium)
-        Text(stringResource(R.string.calendar_permission_rationale), color = colors.inkSoft, fontSize = 14.sp, lineHeight = 20.sp)
+        Text(
+            stringResource(R.string.calendar_permission_rationale),
+            color = colors.inkSoft,
+            fontSize = 14.sp,
+            lineHeight = 20.sp,
+            modifier = Modifier.padding(top = 8.dp, bottom = 12.dp),
+        )
         Column(
             Modifier
-                .clip(RoundedCornerShape(8.dp))
+                .clip(skin.buttonShape)
                 .background(colors.ink)
                 .clickable(onClick = onGrant)
                 .padding(horizontal = 18.dp, vertical = 10.dp),
         ) {
-            Text("許可する", color = colors.background, fontSize = 16.sp, fontWeight = FontWeight.Medium)
+            Text("許可する", color = colors.background, fontSize = 16.sp, fontWeight = skin.strong)
             Text(stringResource(R.string.calendar_permission_allow), color = colors.background.copy(alpha = 0.7f), fontSize = 12.sp)
         }
     }
@@ -170,31 +139,4 @@ private fun Context.openAppSettings() {
     val intent = Intent(SystemSettings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.fromParts("package", packageName, null))
     if (this !is Activity) intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
     startActivity(intent)
-}
-
-@Preview
-@Composable
-private fun TodayPreview() {
-    val today = LocalDate.of(2026, 10, 11)
-    fun event(title: String, part: DayPart, color: Long, location: String = "") =
-        DayEvent(CalendarInstance(0, 0, title, 0, 0, part == DayPart.AllDay, location, color.toInt()), part)
-    Box(Modifier.background(palette().background)) {
-        TodayContent(
-            state = TodayUi(
-                today,
-                Settings(),
-                mapOf(
-                    today to listOf(
-                        event("Cumpleaños de Ana", DayPart.AllDay, 0xFF7CB342),
-                        event("日本語の勉強", DayPart.Timed(LocalTime.of(9, 0), LocalTime.of(10, 30)), 0xFF039BE5, "図書館"),
-                        event("Quedar con Luis", DayPart.Timed(LocalTime.of(22, 0), null), 0xFFE67C73),
-                    ),
-                    today.plusDays(1) to emptyList(),
-                ),
-            ),
-            onDateClick = {},
-            onGrant = {},
-            onOpen = {},
-        )
-    }
 }
