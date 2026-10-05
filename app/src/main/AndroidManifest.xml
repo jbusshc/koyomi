@@ -5,11 +5,28 @@
     <uses-permission android:name="android.permission.READ_CALENDAR" />
 
     <application
+        android:name=".KoyomiApp"
         android:icon="@mipmap/ic_launcher"
         android:roundIcon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:supportsRtl="true"
         android:theme="@style/Theme.Koyomi">
+
+        <!-- La fecha de hoy en la pantalla de inicio. Los dos avisos del sistema son de los pocos que
+             todavía llegan a un receptor del manifest: sin ellos, cambiar la hora dejaría la fecha vieja -->
+        <receiver
+            android:name=".widget.DateWidget"
+            android:exported="true"
+            android:label="@string/widget_date_name">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="android.intent.action.TIME_SET" />
+                <action android:name="android.intent.action.TIMEZONE_CHANGED" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/date_widget_info" />
+        </receiver>
 
         <activity
             android:name=".MainActivity"

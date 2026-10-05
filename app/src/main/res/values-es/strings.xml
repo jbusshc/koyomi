@@ -2,4 +2,16 @@
 <resources>
     <string name="calendar_permission_rationale">Koyomi solo lee tu calendario para mostrarlo aquí. La app no tiene acceso a internet, así que nada sale de tu teléfono.</string>
     <string name="calendar_permission_allow">Permitir acceso al calendario</string>
+    <string name="nav_today">Hoy</string>
+    <string name="nav_month">Mes</string>
+    <string name="nav_settings">Ajustes</string>
+    <string name="add_event_hint">Añadir un evento en tu app de calendario</string>
+    <string name="settings_date_style">Cómo se escriben las fechas</string>
+    <string name="settings_time_style">Cómo se escriben las horas</string>
+    <string name="settings_week_start">Primer día de la semana</string>
+    <string name="settings_calendars">Calendarios que se ven en Koyomi</string>
+    <string name="settings_about">Sobre esta app</string>
+    <string name="settings_privacy">Koyomi lee tu calendario y nunca escribe en él. No tiene acceso a internet: nada de lo que ves aquí sale de tu teléfono.</string>
+    <string name="widget_date_name">Fecha</string>
+    <string name="widget_date_description">La fecha de hoy en japonés: era, día y día de la semana</string>
 </resources>

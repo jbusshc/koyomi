@@ -1,0 +1,80 @@
+package app.koyomi
+
+import android.app.Application
+import app.koyomi.calendar.Agenda
+import app.koyomi.calendar.CalendarRepository
+import app.koyomi.calendar.DayEvent
+import app.koyomi.settings.SettingsStore
+import app.koyomi.widget.DateWidget
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
+import java.time.Duration
+import java.time.LocalDate
+import java.time.ZoneId
+import java.time.ZonedDateTime
+
+/** Lo que cambia sin que la app haga nada: el día, la zona horaria y el permiso de calendario. */
+data class Now(val today: LocalDate, val zone: ZoneId, val calendarAccess: Boolean)
+
+class KoyomiApp : Application() {
+    val appScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+    val calendar by lazy { CalendarRepository(this) }
+    val settings by lazy { SettingsStore(this) }
+
+    // Sube al volver a la app: el permiso, la fecha o la zona pueden haber cambiado mientras tanto
+    private val resumed = MutableStateFlow(0)
+
+    val now: StateFlow<Now> by lazy {
+        combine(midnights(), resumed) { _, _ -> readNow() }.stateIn(appScope, SharingStarted.Eagerly, readNow())
+    }
+
+    fun onResume() {
+        resumed.value++
+        DateWidget.refresh(this)
+    }
+
+    /**
+     * Los eventos de cada día entre [first] y [last], al día con el calendario y los ajustes.
+     * Nulo sin permiso de calendario.
+     */
+    @OptIn(ExperimentalCoroutinesApi::class)
+    fun agenda(first: LocalDate, last: LocalDate): Flow<Map<LocalDate, List<DayEvent>>?> {
+        val days = generateSequence(first) { it.plusDays(1) }.takeWhile { it <= last }.toList()
+        val hidden = settings.settings.map { it.hiddenCalendars }.distinctUntilChanged()
+        return combine(now, hidden) { now, hiddenCalendars -> Triple(now.zone, now.calendarAccess, hiddenCalendars) }
+            .distinctUntilChanged()
+            .flatMapLatest { (zone, access, hiddenCalendars) ->
+                if (!access) return@flatMapLatest flowOf(null)
+                calendar.instances(
+                    from = first.atStartOfDay(zone).toInstant(),
+                    to = last.plusDays(1).atStartOfDay(zone).toInstant(),
+                ).map { instances -> Agenda.byDay(instances.filter { it.calendarId !in hiddenCalendars }, days, zone) }
+            }
+    }
+
+    private fun readNow() = Now(LocalDate.now(), ZoneId.systemDefault(), calendar.hasPermission())
+
+    /** Emite ahora y justo después de cada medianoche. */
+    private fun midnights(): Flow<Unit> = flow {
+        while (true) {
+            emit(Unit)
+            val now = ZonedDateTime.now()
+            val next = now.toLocalDate().plusDays(1).atStartOfDay(now.zone)
+            delay(Duration.between(now, next).toMillis() + 500)
+        }
+    }
+}

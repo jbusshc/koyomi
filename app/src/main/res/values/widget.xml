@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Los colores del tema Standard, otra vez: un widget no puede leer los de Compose -->
+<resources>
+    <color name="widget_paper">#FAFAF7</color>
+    <color name="widget_ink">#22252B</color>
+    <color name="widget_ink_soft">#6B6F78</color>
+    <color name="widget_sunday">#C8372D</color>
+    <color name="widget_saturday">#2F5FA8</color>
+</resources>

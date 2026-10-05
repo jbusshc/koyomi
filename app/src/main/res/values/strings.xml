@@ -5,4 +5,16 @@
     <string name="app_name" translatable="false">Koyomi</string>
     <string name="calendar_permission_rationale">Koyomi only reads your calendar to show it here. The app has no internet access, so nothing leaves your phone.</string>
     <string name="calendar_permission_allow">Allow calendar access</string>
+    <string name="nav_today">Today</string>
+    <string name="nav_month">Month</string>
+    <string name="nav_settings">Settings</string>
+    <string name="add_event_hint">Add an event in your calendar app</string>
+    <string name="settings_date_style">How dates are written</string>
+    <string name="settings_time_style">How times are written</string>
+    <string name="settings_week_start">First day of the week</string>
+    <string name="settings_calendars">Calendars shown in Koyomi</string>
+    <string name="settings_about">About this app</string>
+    <string name="settings_privacy">Koyomi reads your calendar and never writes to it. It has no internet access: nothing you see here leaves your phone.</string>
+    <string name="widget_date_name">Date</string>
+    <string name="widget_date_description">The date in Japanese: era, day and weekday</string>
 </resources>
