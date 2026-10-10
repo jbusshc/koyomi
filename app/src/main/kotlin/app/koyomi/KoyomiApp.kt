@@ -9,6 +9,7 @@ import app.koyomi.widget.AgendaWidget
 import app.koyomi.widget.ClockWidget
 import app.koyomi.weather.WeatherRepository
 import app.koyomi.widget.DateWidget
+import app.koyomi.widget.SummaryWidget
 import app.koyomi.widget.WeatherWidget
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -61,7 +62,10 @@ class KoyomiApp : Application() {
             settings.settings.map { it.weather }.distinctUntilChanged().drop(1).collect { weather.refresh(it) }
         }
         appScope.launch {
-            weather.report.drop(1).collect { WeatherWidget.refresh(this@KoyomiApp) }
+            weather.report.drop(1).collect {
+                WeatherWidget.refresh(this@KoyomiApp)
+                SummaryWidget.refresh(this@KoyomiApp)
+            }
         }
     }
 
@@ -77,6 +81,7 @@ class KoyomiApp : Application() {
         AgendaWidget.refresh(this)
         ClockWidget.refresh(this)
         WeatherWidget.refresh(this)
+        SummaryWidget.refresh(this)
     }
 
     /**

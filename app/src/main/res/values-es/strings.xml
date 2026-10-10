@@ -40,6 +40,8 @@
     <string name="widget_weather_no_place">Elige una ciudad en Koyomi</string>
     <string name="license_weather_use">El tiempo y la búsqueda de ciudades</string>
     <string name="license_weather">Datos meteorológicos de Open-Meteo.com, bajo CC BY 4.0. Su servicio gratuito es para uso no comercial.</string>
+    <string name="widget_summary_name">Resumen</string>
+    <string name="widget_summary_description">El tiempo, la fecha y lo que queda de hoy: cuanto más grande, más enseña</string>
     <string name="widget_date_name">Fecha</string>
     <string name="widget_date_description">La fecha de hoy en japonés: era, día y día de la semana</string>
 </resources>

@@ -66,6 +66,21 @@
                 android:resource="@xml/clock_widget_info" />
         </receiver>
 
+        <!-- Todo en uno: enseña más cuanto más grande se hace -->
+        <receiver
+            android:name=".widget.SummaryWidget"
+            android:exported="true"
+            android:label="@string/widget_summary_name">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="android.intent.action.TIME_SET" />
+                <action android:name="android.intent.action.TIMEZONE_CHANGED" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/summary_widget_info" />
+        </receiver>
+
         <!-- El tiempo de la ciudad elegida. Con el widget puesto, un trabajo pide el parte cada pocas horas -->
         <receiver
             android:name=".widget.WeatherWidget"

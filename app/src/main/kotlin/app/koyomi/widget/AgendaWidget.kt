@@ -2,9 +2,7 @@ package app.koyomi.widget
 
 import android.app.AlarmManager
 import android.app.PendingIntent
-import android.app.job.JobInfo
 import android.app.job.JobParameters
-import android.app.job.JobScheduler
 import android.app.job.JobService
 import android.appwidget.AppWidgetManager
 import android.appwidget.AppWidgetProvider
@@ -15,7 +13,6 @@ import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Paint
 import android.os.Bundle
-import android.provider.CalendarContract
 import android.text.TextPaint
 import android.text.TextUtils
 import android.widget.RemoteViews
@@ -23,21 +20,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import app.koyomi.KoyomiApp
 import app.koyomi.R
-import app.koyomi.calendar.Agenda
-import app.koyomi.calendar.DayEvent
 import app.koyomi.engine.format.DateStyle
 import app.koyomi.engine.format.JaDate
-import app.koyomi.engine.format.JaTime
-import app.koyomi.engine.format.TimeStyle
-import app.koyomi.engine.format.Youbi
 import app.koyomi.engine.holiday.Shukujitsu
-import app.koyomi.engine.span.DayPart
 import app.koyomi.settings.Settings
-import app.koyomi.ui.skin.skinOf
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.time.LocalDate
-import java.time.ZoneId
 import java.time.ZonedDateTime
 
 /**
@@ -61,7 +50,7 @@ class AgendaWidget : AppWidgetProvider() {
 
     override fun onDisabled(context: Context) {
         context.getSystemService(AlarmManager::class.java).cancel(nextRefresh(context))
-        context.getSystemService(JobScheduler::class.java).cancel(CALENDAR_JOB)
+        WidgetJobs.release(context)
     }
 
     private fun render(context: Context, pending: PendingResult?) {
@@ -75,28 +64,21 @@ class AgendaWidget : AppWidgetProvider() {
         }
     }
 
-    /**
-     * El calendario cambia con la app cerrada (una sincronización, un evento creado en otra app).
-     * El sistema avisa con este trabajo, que solo repinta el widget y se vuelve a apuntar.
-     */
+    /** El aviso del sistema de que el calendario cambió: repinta los widgets que lo muestran. */
     class CalendarChanged : JobService() {
         override fun onStartJob(params: JobParameters): Boolean {
             refresh(this)
+            SummaryWidget.refresh(this)
             return false
         }
 
         override fun onStopJob(params: JobParameters): Boolean = false
     }
 
-    private sealed interface Row {
-        data class Label(val text: String, val detail: String, val detailColor: Color) : Row
-        data class Event(val color: Color, val time: String, val title: String) : Row
-        data class Note(val text: String) : Row
-    }
-
     companion object {
         private const val ACTION_REFRESH = "app.koyomi.AGENDA_REFRESH"
-        private const val CALENDAR_JOB = 1
+
+        fun hasWidgets(context: Context): Boolean = ids(context).isNotEmpty()
 
         /** Vuelve a pintar el widget, si hay alguno puesto. */
         fun refresh(context: Context) {
@@ -113,71 +95,22 @@ class AgendaWidget : AppWidgetProvider() {
             if (ids.isEmpty()) return
             val settings = app.settings.settings.first()
             val look = WidgetLook.of(app, settings)
-            val now = ZonedDateTime.now()
-            val today = now.toLocalDate()
-            val tomorrow = today.plusDays(1)
-
-            val events = if (app.calendar.hasPermission()) {
-                val instances = app.calendar.instancesOnce(
-                    from = today.atStartOfDay(now.zone).toInstant(),
-                    to = today.plusDays(2).atStartOfDay(now.zone).toInstant(),
-                ).filter { it.calendarId !in settings.hiddenCalendars }
-                Agenda.byDay(instances, listOf(today, tomorrow), now.zone)
-            } else {
-                null
-            }
-            // De hoy, lo que no ha terminado: lo pasado ya no hace falta en la pantalla de inicio
-            val nowMillis = now.toInstant().toEpochMilli()
-            val left = events?.get(today).orEmpty().filter { it.part == DayPart.AllDay || it.instance.endMillis > nowMillis }
-            val rows = rows(app, look, settings, tomorrow, events != null, left, events?.get(tomorrow).orEmpty())
+            val snapshot = loadAgenda(app, settings, ZonedDateTime.now())
+            val rows = agendaRows(app, look, settings, snapshot)
 
             val manager = AppWidgetManager.getInstance(app)
             for (id in ids) {
-                val bitmap = image(app, look, settings, today, rows, manager.getAppWidgetOptions(id))
+                val bitmap = image(app, look, settings, snapshot.today, rows, manager.getAppWidgetOptions(id))
                 val views = RemoteViews(app.packageName, R.layout.widget_date_image)
                 views.setImageViewBitmap(R.id.widget_image, bitmap)
-                views.setContentDescription(R.id.widget_image, describe(today, rows))
+                views.setContentDescription(R.id.widget_image, describe(snapshot.today, rows))
                 views.setOnClickPendingIntent(R.id.widget_root, openApp(app))
                 manager.updateAppWidget(id, views)
             }
 
-            schedule(app, today, now.zone, left, nowMillis)
-        }
-
-        private fun rows(
-            context: Context,
-            look: WidgetLook,
-            settings: Settings,
-            tomorrow: LocalDate,
-            access: Boolean,
-            today: List<DayEvent>,
-            next: List<DayEvent>,
-        ): List<Row> = buildList {
-            val colors = look.colors
-            if (!access) {
-                add(Row.Note(context.getString(R.string.widget_agenda_no_access)))
-                return@buildList
-            }
-            fun event(event: DayEvent) = Row.Event(
-                color = skinOf(look.skin).calendarColor(event.instance.color, colors),
-                time = when (val part = event.part) {
-                    DayPart.AllDay -> "終日"
-                    is DayPart.Timed -> JaTime.range(part.start, part.end, settings.timeStyle)
-                },
-                title = event.instance.title.ifBlank { "（タイトルなし）" },
-            )
-            if (today.isEmpty()) add(Row.Note("予定なし")) else today.forEach { add(event(it)) }
-            if (next.isNotEmpty()) {
-                val date = JaDate.of(tomorrow)
-                val holiday = Shukujitsu.of(tomorrow)
-                val color = when {
-                    holiday != null || date.youbi == Youbi.NICHI -> colors.sunday
-                    date.youbi == Youbi.DO -> colors.saturday
-                    else -> colors.inkSoft
-                }
-                add(Row.Label("明日", date.line(DateStyle.SIMPLE), color))
-                next.forEach { add(event(it)) }
-            }
+            // Lo siguiente que cambia la lista. No despierta al teléfono: si está dormido, se pinta al encenderse
+            app.getSystemService(AlarmManager::class.java).set(AlarmManager.RTC, snapshot.nextChangeMillis(), nextRefresh(app))
+            WidgetJobs.watchCalendar(app)
         }
 
         private fun image(context: Context, look: WidgetLook, settings: Settings, today: LocalDate, rows: List<Row>, options: Bundle): Bitmap {
@@ -205,12 +138,7 @@ class AgendaWidget : AppWidgetProvider() {
             val holiday = Shukujitsu.of(today)
             var y = inset + 19 * density
             val dateWidth = draw(date.monthDay, left, y, 19f, colors.ink)
-            val youbiColor = when {
-                holiday != null || date.youbi == Youbi.NICHI -> colors.sunday
-                date.youbi == Youbi.DO -> colors.saturday
-                else -> colors.inkSoft
-            }
-            draw("（${date.youbi.short}）", left + dateWidth, y, 15f, youbiColor)
+            draw("（${date.youbi.short}）", left + dateWidth, y, 15f, look.youbiColor(date.youbi, holiday != null))
             val aside = holiday ?: date.year.takeIf { settings.dateStyle != DateStyle.SIMPLE }
             if (aside != null) draw(aside, right, y, 12f, if (holiday != null) colors.sunday else colors.inkSoft, alignRight = true)
             y += 9 * density
@@ -262,24 +190,6 @@ class AgendaWidget : AppWidgetProvider() {
                     },
                 )
             }
-        }
-
-        private fun schedule(app: KoyomiApp, today: LocalDate, zone: ZoneId, left: List<DayEvent>, nowMillis: Long) {
-            // Lo siguiente que cambia la lista: que termine un evento de hoy, o la medianoche.
-            // No despierta al teléfono: si está dormido, se pinta al encenderse.
-            val midnight = today.plusDays(1).atStartOfDay(zone).toInstant().toEpochMilli()
-            val nextEnd = left.filter { it.part != DayPart.AllDay }.map { it.instance.endMillis }.filter { it > nowMillis }.minOrNull()
-            val at = minOf(midnight, nextEnd ?: midnight) + 2_000
-            app.getSystemService(AlarmManager::class.java).set(AlarmManager.RTC, at, nextRefresh(app))
-
-            // Y que cambie el calendario. El aviso vale para una vez: cada pintada lo vuelve a pedir
-            if (!app.calendar.hasPermission()) return
-            val job = JobInfo.Builder(CALENDAR_JOB, ComponentName(app, CalendarChanged::class.java))
-                .addTriggerContentUri(JobInfo.TriggerContentUri(CalendarContract.CONTENT_URI, JobInfo.TriggerContentUri.FLAG_NOTIFY_FOR_DESCENDANTS))
-                .setTriggerContentUpdateDelay(1_000)
-                .setTriggerContentMaxDelay(10_000)
-                .build()
-            runCatching { app.getSystemService(JobScheduler::class.java).schedule(job) }
         }
 
         private fun nextRefresh(context: Context): PendingIntent = PendingIntent.getBroadcast(
