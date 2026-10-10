@@ -25,6 +25,8 @@ data class WeatherReport(
     val fetchedAt: Long,
     val temperature: Double,
     val code: Int,
+    /** Si en ese sitio es de día ahora: decide entre el sol y la luna. */
+    val isDay: Boolean,
     /** Hoy y los días siguientes, en la fecha local del sitio. */
     val days: List<DayForecast>,
 )
@@ -92,7 +94,7 @@ class WeatherRepository(context: Context) {
         // Dos decimales: algo más de un kilómetro. Basta para el tiempo de una ciudad
         val url = String.format(
             Locale.ROOT,
-            "%s?latitude=%.2f&longitude=%.2f&current=temperature_2m,weather_code&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=auto&forecast_days=3",
+            "%s?latitude=%.2f&longitude=%.2f&current=temperature_2m,weather_code,is_day&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=auto&forecast_days=3",
             FORECAST,
             place.latitude,
             place.longitude,
@@ -114,6 +116,8 @@ class WeatherRepository(context: Context) {
             fetchedAt = body.getLong(KEY_FETCHED),
             temperature = current.getDouble("temperature_2m"),
             code = current.getInt("weather_code"),
+            // Un parte guardado antes de que se pidiera este dato se toma por de día
+            isDay = current.optInt("is_day", 1) == 1,
             days = List(dates.length()) { i ->
                 DayForecast(
                     date = LocalDate.parse(dates.getString(i)),

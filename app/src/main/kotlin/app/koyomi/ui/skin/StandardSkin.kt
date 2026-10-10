@@ -24,6 +24,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.luminance
+import app.koyomi.engine.weather.Tone
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -65,27 +67,50 @@ object StandardSkin : KoyomiSkin {
     override val font: FontFamily = FontFamily.Default
     override val strong: FontWeight = FontWeight.Medium
     override val dot: Shape = CircleShape
-    override val screenPadding = 24.dp
+    // Las tarjetas ya llevan su propio margen interior
+    override val screenPadding = 16.dp
     override val buttonShape: Shape = RoundedCornerShape(8.dp)
     override val sheetShape: Shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
 
     override val sheetHandle = true
     override val wafuMonth = false
+    override val iconStyle = IconStyle.SOFT
+
+    // Colores de un parte del tiempo: el sol ámbar, la lluvia azul, la nube gris azulada
+    override fun toneColor(tone: Tone, colors: Palette): Color {
+        val night = colors.background.luminance() < 0.5f
+        return when (tone) {
+            Tone.SUN, Tone.BOLT -> if (night) Color(0xFFFFC24B) else Color(0xFFF5A524)
+            Tone.MOON -> if (night) Color(0xFFFFE08A) else Color(0xFFE5B93C)
+            Tone.CLOUD -> if (night) Color(0xFFC4CFDB) else Color(0xFF9FB1C6)
+            Tone.SHADE -> if (night) Color(0xFF7E8A9A) else Color(0xFFC5D0DC)
+            Tone.RAIN -> if (night) Color(0xFF5DA9FF) else Color(0xFF3D8BDA)
+            Tone.SNOW -> if (night) Color(0xFFDDEBFA) else Color(0xFF6BB6E8)
+            Tone.FOG -> if (night) Color(0xFF8E98A6) else Color(0xFFA3AEBB)
+        }
+    }
 
     override fun sheetColor(colors: Palette): Color = colors.surface
 
     @Composable
     override fun Panel(modifier: Modifier, title: (@Composable RowScope.() -> Unit)?, content: @Composable ColumnScope.() -> Unit) {
         val colors = palette()
-        Column(modifier) {
+        val shape = RoundedCornerShape(20.dp)
+        Column(
+            modifier
+                .padding(vertical = 6.dp)
+                .clip(shape)
+                .background(colors.surface)
+                .border(1.dp, colors.rule, shape)
+                .padding(horizontal = 16.dp, vertical = 14.dp),
+        ) {
             if (title != null) {
                 Row(
-                    Modifier.padding(top = 28.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(10.dp),
                     content = title,
                 )
-                Box(Modifier.padding(top = 8.dp, bottom = 4.dp).fillMaxWidth().height(1.dp).background(colors.rule))
+                Box(Modifier.padding(top = 10.dp, bottom = 4.dp).fillMaxWidth().height(1.dp).background(colors.rule))
             }
             content()
         }

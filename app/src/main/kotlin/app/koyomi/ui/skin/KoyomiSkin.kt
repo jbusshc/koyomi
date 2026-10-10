@@ -16,6 +16,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import app.koyomi.engine.format.DateStyle
 import app.koyomi.engine.format.JaDateText
+import app.koyomi.engine.weather.Tone
 import app.koyomi.settings.Settings
 import app.koyomi.settings.SkinId
 import app.koyomi.settings.ThemeMode
@@ -62,6 +63,17 @@ interface KoyomiSkin {
      */
     fun calendarColor(argb: Int, colors: Palette): Color = if (argb == 0) colors.inkSoft else Color(argb).copy(alpha = 1f)
 
+    /** Cómo se dibujan los iconos del tiempo. */
+    val iconStyle: IconStyle
+
+    /** El color de cada cosa de un icono del tiempo. Por defecto, sacado de la paleta del tema. */
+    fun toneColor(tone: Tone, colors: Palette): Color = when (tone) {
+        Tone.SUN, Tone.BOLT -> colors.accent
+        Tone.MOON, Tone.CLOUD, Tone.SNOW -> colors.ink
+        Tone.SHADE, Tone.FOG -> colors.inkSoft
+        Tone.RAIN -> colors.saturday
+    }
+
     /** Un bloque de contenido, con título o sin él. */
     @Composable
     fun Panel(modifier: Modifier, title: (@Composable RowScope.() -> Unit)?, content: @Composable ColumnScope.() -> Unit)
@@ -81,6 +93,9 @@ interface KoyomiSkin {
     @Composable
     fun NavBar(current: Destination, onSelect: (Destination) -> Unit)
 }
+
+/** SOFT: formas redondas con rayos. INK: formas llanas de tinta, el sol como un disco. PIXEL: cuadrícula de 16×16. */
+enum class IconStyle { SOFT, INK, PIXEL }
 
 val LocalSkin = staticCompositionLocalOf<KoyomiSkin> { StandardSkin }
 val LocalPalette = staticCompositionLocalOf { StandardSkin.palette(dark = false) }

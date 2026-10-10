@@ -35,6 +35,7 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import app.koyomi.engine.weather.Tone
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.drawscope.DrawScope
@@ -74,6 +75,7 @@ abstract class PixelSkin : KoyomiSkin {
 
     override val sheetHandle = false
     override val wafuMonth = false
+    override val iconStyle = IconStyle.PIXEL
 
     override fun sheetColor(colors: Palette): Color = colors.background
 
@@ -292,6 +294,12 @@ object RetroSkin : PixelSkin() {
 
     // Cuatro tonos y ninguno más: el color de cada calendario no cabe en esta pantalla
     override fun calendarColor(argb: Int, colors: Palette): Color = colors.ink
+
+    // Y el del tiempo tampoco: lo que cae o lo que se ve de lejos va en el tono suave
+    override fun toneColor(tone: Tone, colors: Palette): Color = when (tone) {
+        Tone.SHADE, Tone.FOG, Tone.RAIN -> colors.inkSoft
+        else -> colors.ink
+    }
 
     // Un recuadro liso, de un solo trazo
     override fun DrawScope.frame(colors: Palette, u: Float) {

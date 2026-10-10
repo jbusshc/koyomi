@@ -25,6 +25,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.lerp
+import app.koyomi.engine.weather.Tone
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
@@ -83,6 +85,18 @@ object TraditionalSkin : KoyomiSkin {
     override val sheetShape: Shape = RoundedCornerShape(topStart = 6.dp, topEnd = 6.dp)
     override val sheetHandle = true
     override val wafuMonth = true
+    override val iconStyle = IconStyle.INK
+
+    // Sin colores de colores: el sol es el 朱 de un sello, la lluvia el 藍, y lo demás, tinta aguada
+    override fun toneColor(tone: Tone, colors: Palette): Color = when (tone) {
+        Tone.SUN, Tone.BOLT -> colors.accent
+        Tone.MOON -> colors.ink
+        Tone.CLOUD -> lerp(colors.background, colors.ink, 0.5f)
+        Tone.SHADE -> lerp(colors.background, colors.ink, 0.25f)
+        Tone.RAIN -> colors.saturday
+        Tone.SNOW -> lerp(colors.background, colors.ink, 0.4f)
+        Tone.FOG -> lerp(colors.background, colors.ink, 0.35f)
+    }
 
     override fun sheetColor(colors: Palette): Color = colors.surface
 
