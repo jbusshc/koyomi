@@ -16,6 +16,8 @@ import app.koyomi.engine.format.DateStyle
 import app.koyomi.engine.format.JaDate
 import app.koyomi.engine.holiday.Shukujitsu
 import app.koyomi.engine.weather.Tenki
+import app.koyomi.engine.reading.JaReading
+import app.koyomi.settings.LearnMode
 import app.koyomi.settings.Settings
 import app.koyomi.settings.SkinId
 import app.koyomi.ui.components.rekichu
@@ -154,6 +156,7 @@ internal suspend fun renderSummary(
         weatherFailed = app.weather.failed.value,
         rows = snapshot?.let { agendaRows(app, look, settings, it) }.orEmpty(),
         note = if (settings.rekichu) rekichu(today) else null,
+        reading = if (settings.learn != LearnMode.OFF) JaReading.monthDay(today) else null,
         noPlaceHint = app.getString(R.string.widget_weather_no_place),
         weekStart = settings.weekStart,
     )

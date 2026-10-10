@@ -10,6 +10,9 @@
     <string name="convert_to_wareki">From a Western date to the Japanese calendar</string>
     <string name="convert_to_seireki">From an era year to the Western year</string>
     <string name="convert_no_such_year">%1$s ended in its year %2$d</string>
+    <string name="settings_learn">Help to learn: how the date and time are said, and what they mean</string>
+    <string name="settings_learn_meaning">with what it means in your language</string>
+    <string name="learn_panel_gloss">How today is said</string>
     <string name="settings_rekichu">Traditional notes next to the date: lucky days, old calendar, solar terms</string>
     <string name="nav_settings">Settings</string>
     <string name="add_event_hint">Add an event in your calendar app</string>

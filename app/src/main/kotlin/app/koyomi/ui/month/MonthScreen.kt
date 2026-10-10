@@ -53,7 +53,9 @@ import app.koyomi.engine.kyureki.Sekki
 import app.koyomi.settings.Settings
 import app.koyomi.ui.components.DayEvents
 import app.koyomi.ui.components.newEvent
+import app.koyomi.ui.components.LearningLines
 import app.koyomi.ui.components.openEvent
+import app.koyomi.settings.LearnMode
 import app.koyomi.ui.components.rekichu
 import app.koyomi.ui.components.youbiColor
 import app.koyomi.ui.theme.Palette
@@ -237,6 +239,7 @@ private fun DaySheet(day: LocalDate, settings: Settings, viewModel: MonthViewMod
                 Text("（${date.youbi.short}）", color = youbiColor(date.youbi, holiday != null, colors), fontSize = 20.sp, modifier = Modifier.padding(bottom = 2.dp))
             }
             if (holiday != null) Text(holiday, color = colors.sunday, fontSize = 15.sp, modifier = Modifier.padding(top = 4.dp))
+            if (settings.learn != LearnMode.OFF) LearningLines(day, null, settings.learn, Modifier.padding(top = 8.dp))
             if (settings.rekichu) rekichu(day)?.let { Text(it, color = colors.inkSoft, fontSize = 13.sp, modifier = Modifier.padding(top = 4.dp)) }
             Box(Modifier.padding(top = 12.dp, bottom = 4.dp).fillMaxWidth().height(1.dp).background(colors.rule))
 

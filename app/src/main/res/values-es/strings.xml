@@ -8,6 +8,9 @@
     <string name="convert_to_wareki">De una fecha occidental al calendario japonés</string>
     <string name="convert_to_seireki">De un año de era al año occidental</string>
     <string name="convert_no_such_year">%1$s terminó en su año %2$d</string>
+    <string name="settings_learn">Ayuda para aprender: cómo se dice la fecha y la hora, y qué significan</string>
+    <string name="settings_learn_meaning">con lo que significa en tu idioma</string>
+    <string name="learn_panel_gloss">Cómo se dice hoy</string>
     <string name="settings_rekichu">Notas tradicionales junto a la fecha: días propicios, calendario antiguo, términos solares</string>
     <string name="nav_settings">Ajustes</string>
     <string name="add_event_hint">Añadir un evento en tu app de calendario</string>

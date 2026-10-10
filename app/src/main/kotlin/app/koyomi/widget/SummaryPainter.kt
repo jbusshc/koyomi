@@ -34,6 +34,8 @@ internal class SummaryData(
     val rows: List<Row>,
     /** Una línea de 暦注 o de lecturas, si están encendidas. */
     val note: String?,
+    /** Cómo se dice la fecha, en kana, si el modo aprendizaje está encendido. */
+    val reading: String?,
     val noPlaceHint: String,
     val weekStart: Youbi,
 )
@@ -129,7 +131,7 @@ internal class SummaryPainter(
                 top += hiloLine(x, top, w) + 2f
             }
         }
-        if (data.note != null && Section.DATE in sections && top + NOTE_ROW <= bottom) top += noteLine(x, top, w)
+        top += notes(x, top, w, bottom - top)
         if (Section.EVENTS in sections) top += events(x, top, w, bottom - top) + GAP
         if (Section.DATE in sections && bottom - top >= MONTH_MIN) monthBlock(x, top, w, bottom - top)
     }
@@ -153,7 +155,7 @@ internal class SummaryPainter(
 
         var rightTop = y
         if (Section.DATE in sections) rightTop += dateRow(rightX, rightTop, rightWidth) + GAP
-        if (data.note != null && Section.DATE in sections && rightTop + NOTE_ROW <= bottom) rightTop += noteLine(rightX, rightTop, rightWidth)
+        rightTop += notes(rightX, rightTop, rightWidth, bottom - rightTop)
         if (Section.EVENTS in sections) rightTop += events(rightX, rightTop, rightWidth, bottom - rightTop) + GAP
         if (!monthOnLeft && Section.DATE in sections && bottom - rightTop >= MONTH_MIN) monthBlock(rightX, rightTop, rightWidth, bottom - rightTop)
     }
@@ -263,9 +265,16 @@ internal class SummaryPainter(
         return FORECAST_BLOCK
     }
 
-    private fun noteLine(x: Float, y: Float, w: Float): Float {
-        write(data.note.orEmpty(), x, y + 12f, 12f, colors.inkSoft, maxWidth = w)
-        return NOTE_ROW
+    /** Las líneas que acompañan a la fecha (la lectura y el 暦注), las que quepan. */
+    private fun notes(x: Float, y: Float, w: Float, available: Float): Float {
+        if (Section.DATE !in sections) return 0f
+        var top = y
+        for (line in listOfNotNull(data.reading, data.note)) {
+            if (top + NOTE_ROW - y > available) break
+            write(line, x, top + 12f, 12f, colors.inkSoft, maxWidth = w)
+            top += NOTE_ROW
+        }
+        return top - y
     }
 
     /** El próximo evento, en dos líneas: la hora y el título. Para una fila baja. */

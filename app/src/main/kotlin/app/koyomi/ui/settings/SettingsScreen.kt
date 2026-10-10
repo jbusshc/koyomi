@@ -42,6 +42,8 @@ import app.koyomi.engine.format.JaDate
 import app.koyomi.engine.format.JaTime
 import app.koyomi.engine.format.TimeStyle
 import app.koyomi.engine.format.Youbi
+import app.koyomi.engine.reading.JaReading
+import app.koyomi.settings.LearnMode
 import app.koyomi.settings.Place
 import app.koyomi.settings.Settings
 import app.koyomi.settings.SkinId
@@ -88,6 +90,8 @@ class SettingsViewModel(app: Application) : AndroidViewModel(app) {
     fun setWeekStart(day: Youbi) = viewModelScope.launch { store.setWeekStart(day) }
 
     fun setWeather(place: Place?) = viewModelScope.launch { store.setWeather(place) }
+
+    fun setLearn(mode: LearnMode) = viewModelScope.launch { store.setLearn(mode) }
 
     fun setRekichu(shown: Boolean) = viewModelScope.launch { store.setRekichu(shown) }
 
@@ -165,6 +169,12 @@ fun SettingsScreen(viewModel: SettingsViewModel = viewModel()) {
                 Text(settings.weather?.name ?: "表示しない", color = colors.ink, fontSize = 16.sp)
                 Text("場所を選ぶ", color = colors.inkSoft, fontSize = 13.sp)
             }
+        }
+
+        Section("学習", stringResource(R.string.settings_learn), colors) {
+            Choice("表示しない", null, settings.learn == LearnMode.OFF, colors) { viewModel.setLearn(LearnMode.OFF) }
+            Choice("読み方", JaReading.monthDay(today), settings.learn == LearnMode.READING, colors) { viewModel.setLearn(LearnMode.READING) }
+            Choice("読み方と意味", stringResource(R.string.settings_learn_meaning), settings.learn == LearnMode.MEANING, colors) { viewModel.setLearn(LearnMode.MEANING) }
         }
 
         Section("暦注", stringResource(R.string.settings_rekichu), colors) {

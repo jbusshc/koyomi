@@ -34,6 +34,7 @@ import app.koyomi.engine.format.DateStyle
 import app.koyomi.engine.format.JaDate
 import app.koyomi.engine.holiday.Shukujitsu
 import app.koyomi.engine.kyureki.Eto
+import app.koyomi.engine.reading.JaReading
 import app.koyomi.engine.kyureki.Kyureki
 import app.koyomi.engine.kyureki.Rokuyo
 import app.koyomi.engine.kyureki.Sekki
@@ -71,6 +72,7 @@ fun ConvertScreen() {
             Result("和暦", arabic.line(DateStyle.FULL), colors)
             Result("漢数字", kanji.year + kanji.monthDay, colors)
             Result("曜日", "${arabic.youbi.full}（${arabic.youbi.fullKana}）", colors)
+            JaReading.date(date)?.let { Result("読み", it, colors) }
             Result("干支", "${eto.kanji}・${eto.yearName}（${eto.yearKana}）", colors)
             Shukujitsu.of(date)?.let { Result("祝日", it, colors, colors.sunday) }
             Kyureki.of(date)?.let { Result("旧暦", it.text.removePrefix("旧暦"), colors) }
@@ -100,6 +102,7 @@ fun ConvertScreen() {
                 Text(stringResource(R.string.convert_no_such_year, era.kanji, Wareki.lastYear(era) ?: 0), color = colors.inkSoft, fontSize = 13.sp)
             } else {
                 Result("西暦", "${span.start.year}年", colors)
+                if (span.start.year in 1000..9999) Result("読み", "${JaReading.warekiYear(Wareki(era, eraYear))} ＝ ${JaReading.seirekiYear(span.start.year)}", colors)
                 Result("干支", Eto.ofYear(span.start.year).let { "${it.kanji}・${it.yearName}" }, colors)
                 // El primer año y el último de una era no duran el año entero
                 if (span.start.dayOfYear != 1 || span.endInclusive != span.endInclusive.withDayOfYear(span.endInclusive.lengthOfYear())) {

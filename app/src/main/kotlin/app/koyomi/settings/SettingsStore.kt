@@ -18,6 +18,9 @@ enum class SkinId { STANDARD, JRPG, TRADITIONAL, RETRO }
 
 enum class ThemeMode { SYSTEM, LIGHT, DARK }
 
+/** Ayuda para quien estudia: cómo se dice la fecha y, si se pide, qué significa en el idioma del teléfono. */
+enum class LearnMode { OFF, READING, MEANING }
+
 /** Una ciudad para el tiempo. Lo único de los ajustes que llega a salir del teléfono, y solo sus coordenadas. */
 data class Place(val name: String, val detail: String, val latitude: Double, val longitude: Double) {
     /** Las coordenadas con la precisión con que se piden: dos sitios con la misma clave son el mismo parte. */
@@ -31,6 +34,7 @@ data class Settings(
     val timeStyle: TimeStyle = TimeStyle.H24,
     /** 日 o 月: el primer día de la semana en la vista mensual. */
     val weekStart: Youbi = Youbi.NICHI,
+    val learn: LearnMode = LearnMode.OFF,
     /** 暦注: si junto a la fecha salen el 六曜, la fecha antigua y los términos solares. */
     val rekichu: Boolean = false,
     /** De dónde se enseña el tiempo. Nulo: no se enseña, y Koyomi no usa internet. */
@@ -52,6 +56,7 @@ class SettingsStore(private val context: Context) {
             timeStyle = enumOr(prefs[TIME_STYLE], defaults.timeStyle),
             weekStart = enumOr(prefs[WEEK_START], defaults.weekStart),
             rekichu = prefs[REKICHU] ?: defaults.rekichu,
+            learn = enumOr(prefs[LEARN], defaults.learn),
             weather = prefs[WEATHER_NAME]?.let { name ->
                 Place(name, prefs[WEATHER_DETAIL].orEmpty(), prefs[WEATHER_LAT] ?: return@let null, prefs[WEATHER_LON] ?: return@let null)
             },
@@ -68,6 +73,8 @@ class SettingsStore(private val context: Context) {
     suspend fun setTimeStyle(style: TimeStyle) = context.dataStore.edit { it[TIME_STYLE] = style.name }
 
     suspend fun setWeekStart(day: Youbi) = context.dataStore.edit { it[WEEK_START] = day.name }
+
+    suspend fun setLearn(mode: LearnMode) = context.dataStore.edit { it[LEARN] = mode.name }
 
     suspend fun setRekichu(shown: Boolean) = context.dataStore.edit { it[REKICHU] = shown }
 
@@ -94,6 +101,7 @@ class SettingsStore(private val context: Context) {
         val TIME_STYLE = stringPreferencesKey("time_style")
         val WEEK_START = stringPreferencesKey("week_start")
         val REKICHU = booleanPreferencesKey("rekichu")
+        val LEARN = stringPreferencesKey("learn")
         val WEATHER_NAME = stringPreferencesKey("weather_name")
         val WEATHER_DETAIL = stringPreferencesKey("weather_detail")
         val WEATHER_LAT = doublePreferencesKey("weather_lat")

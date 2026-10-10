@@ -47,7 +47,9 @@ import app.koyomi.engine.format.JaTime
 import app.koyomi.engine.holiday.Shukujitsu
 import app.koyomi.ui.components.DayEvents
 import app.koyomi.ui.components.openEvent
+import app.koyomi.ui.components.LearningLines
 import app.koyomi.ui.components.rekichu
+import app.koyomi.settings.LearnMode
 import app.koyomi.ui.components.youbiColor
 import app.koyomi.ui.skin.palette
 import app.koyomi.ui.weather.WeatherPanel
@@ -84,14 +86,27 @@ private fun TodayContent(state: TodayUi, onDateClick: () -> Unit, onGrant: () ->
             .verticalScroll(rememberScrollState())
             .padding(horizontal = skin.screenPadding),
     ) {
+        val time = now()
         skin.DateHeader(
             date = JaDate.of(state.today),
             style = state.settings.dateStyle,
             holiday = Shukujitsu.of(state.today),
-            time = JaTime.kanji(now(), state.settings.timeStyle),
+            time = JaTime.kanji(time, state.settings.timeStyle),
             // Sin onda: la fecha cambia de forma, y eso ya dice que se ha tocado
             modifier = Modifier.fillMaxWidth().clickable(interactionSource = remember { MutableInteractionSource() }, indication = null, onClick = onDateClick),
         )
+
+        if (state.settings.learn != LearnMode.OFF) {
+            skin.Panel(
+                Modifier.fillMaxWidth(),
+                title = {
+                    Text("読み方", color = colors.ink, fontSize = 16.sp, fontWeight = skin.strong)
+                    Text(stringResource(R.string.learn_panel_gloss), color = colors.inkSoft, fontSize = 12.sp)
+                },
+            ) {
+                LearningLines(state.today, time, state.settings.learn, Modifier.padding(top = 10.dp))
+            }
+        }
 
         if (state.settings.rekichu) {
             rekichu(state.today)?.let { Text(it, color = colors.inkSoft, fontSize = 14.sp, modifier = Modifier.padding(top = 4.dp, bottom = 8.dp)) }
