@@ -35,10 +35,10 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
-import app.koyomi.engine.weather.Tone
+import app.koyomi.settings.RpgWindow
+import app.koyomi.settings.ThemeOptions
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.Shape
-import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -55,7 +55,6 @@ import app.koyomi.ui.Destination
 import app.koyomi.ui.components.youbiColor
 import app.koyomi.ui.theme.Palette
 import kotlinx.coroutines.delay
-import kotlin.math.roundToInt
 
 /**
  * Lo que comparten los temas de píxeles: la fuente DotGothic16 (SIL OFL 1.1), ventanas con marco,
@@ -63,9 +62,6 @@ import kotlin.math.roundToInt
  * icono sale de un juego real. Cada tema pone sus colores y su marco.
  */
 abstract class PixelSkin : KoyomiSkin {
-    /** El marco de una ventana. [u] es el «píxel» del tema, en píxeles enteros de pantalla. */
-    protected abstract fun DrawScope.frame(colors: Palette, u: Float)
-
     override val font: FontFamily = FontFamily(Font(R.font.dotgothic16_regular))
     override val strong: FontWeight = FontWeight.Normal
     override val dot: Shape = RectangleShape
@@ -169,15 +165,21 @@ abstract class PixelSkin : KoyomiSkin {
         }
     }
 
-    private fun Modifier.window(colors: Palette): Modifier = drawBehind {
-        // En píxeles enteros, para que los bordes salgan nítidos
-        frame(colors, 2.dp.toPx().roundToInt().coerceAtLeast(1).toFloat())
-    }
-
-    /** Un rectángulo con las esquinas recortadas a escalón. */
-    protected fun DrawScope.steppedRect(inset: Float, cut: Float, color: Color) {
-        drawRect(color, Offset(inset + cut, inset), Size(size.width - 2 * (inset + cut), size.height - 2 * inset))
-        drawRect(color, Offset(inset, inset + cut), Size(size.width - 2 * inset, size.height - 2 * (inset + cut)))
+    /** El marco de la ventana, con el grosor que haya elegido el usuario. */
+    @Composable
+    private fun Modifier.window(colors: Palette): Modifier {
+        val weight = LocalThemeOptions.current.rpgFrame
+        return drawBehind {
+            val t = PixelFrame.border(weight, density)
+            for (rect in PixelFrame.rects(size.width, size.height, t)) {
+                val color = when (rect.role) {
+                    PixelFrame.Role.FRAME -> colors.frame
+                    PixelFrame.Role.SURFACE -> colors.surface
+                    PixelFrame.Role.HAIRLINE -> colors.frame.copy(alpha = 0.3f)
+                }
+                drawRect(color, Offset(rect.x, rect.y), Size(rect.w, rect.h))
+            }
+        }
     }
 
     /** ▶ hecho de columnas de píxeles. La fuente no lo trae, y así casa con el marco. */
@@ -217,93 +219,68 @@ abstract class PixelSkin : KoyomiSkin {
 }
 
 /**
- * La app como el menú de un RPG japonés de los de antes: ventanas azul noche con marco doble,
- * letras claras y cursor dorado.
+ * La app como el menú de un RPG japonés de los de antes: ventanas con marco doble, letras claras y
+ * cursor dorado. El color de las ventanas y lo grueso del marco los elige el usuario.
  */
 object JrpgSkin : PixelSkin() {
-    private val dark = Palette(
-        background = Color(0xFF05060F),
-        surface = Color(0xFF101642),
-        ink = Color(0xFFF4F4F0),
-        inkSoft = Color(0xFFA9B0D6),
-        rule = Color(0xFF3A4180),
-        sunday = Color(0xFFFF8A80),
-        saturday = Color(0xFF82B1FF),
-        accent = Color(0xFFFFD54A),
-        frame = Color(0xFFF4F4F0),
-    )
-    private val light = Palette(
-        background = Color(0xFFD8D2BC),
-        surface = Color(0xFFF3EEDC),
-        ink = Color(0xFF1B1E3C),
-        inkSoft = Color(0xFF5F6385),
-        rule = Color(0xFFBDB69C),
-        sunday = Color(0xFFC0392B),
-        saturday = Color(0xFF2A56A8),
-        accent = Color(0xFFC77700),
-        frame = Color(0xFF1B1E3C),
+    private class Window(
+        val background: Color,
+        val surface: Color,
+        val rule: Color,
+        val inkSoft: Color,
+        // Claro: el pergamino y la tinta que acompañan a esa ventana
+        val paper: Color,
+        val paperSurface: Color,
+        val paperRule: Color,
+        val ink: Color,
+        val paperInkSoft: Color,
     )
 
-    override fun palette(dark: Boolean): Palette = if (dark) this.dark else light
-
-    // Borde grueso con las esquinas a escalón y una línea fina por dentro
-    override fun DrawScope.frame(colors: Palette, u: Float) {
-        val thin = (u / 2).roundToInt().coerceAtLeast(1).toFloat()
-        steppedRect(inset = 0f, cut = u, color = colors.frame)
-        steppedRect(inset = 2 * u, cut = u, color = colors.surface)
-        steppedRect(inset = 3 * u, cut = 0f, color = colors.frame.copy(alpha = 0.3f))
-        steppedRect(inset = 3 * u + thin, cut = 0f, color = colors.surface)
-    }
-}
-
-/**
- * La pantalla de una consola portátil de cristal líquido: cuatro tonos de verde y ninguno más.
- * Sin rojo ni azul, el fin de semana y los festivos se distinguen por ir un tono más claros.
- * En oscuro, los mismos cuatro tonos al revés.
- */
-object RetroSkin : PixelSkin() {
-    private val darkest = Color(0xFF0F380F)
-    private val darkTone = Color(0xFF306230)
-    private val lightTone = Color(0xFF8BAC0F)
-    private val lightest = Color(0xFF9BBC0F)
-
-    private val light = Palette(
-        background = lightest,
-        surface = lightest,
-        ink = darkest,
-        inkSoft = darkTone,
-        rule = darkTone,
-        sunday = darkTone,
-        saturday = darkTone,
-        accent = darkest,
-        frame = darkest,
-    )
-    private val dark = Palette(
-        background = darkest,
-        surface = darkest,
-        ink = lightest,
-        inkSoft = lightTone,
-        rule = darkTone,
-        sunday = lightTone,
-        saturday = lightTone,
-        accent = lightest,
-        frame = lightTone,
+    private val windows = mapOf(
+        RpgWindow.NAVY to Window(
+            Color(0xFF05060F), Color(0xFF101642), Color(0xFF3A4180), Color(0xFFA9B0D6),
+            Color(0xFFD8D2BC), Color(0xFFF3EEDC), Color(0xFFBDB69C), Color(0xFF1B1E3C), Color(0xFF5F6385),
+        ),
+        RpgWindow.BLACK to Window(
+            Color(0xFF000000), Color(0xFF0B0B0E), Color(0xFF3C3C46), Color(0xFFA8A8B8),
+            Color(0xFFDADADA), Color(0xFFF6F6F4), Color(0xFFBDBDBD), Color(0xFF111111), Color(0xFF585858),
+        ),
+        RpgWindow.PLUM to Window(
+            Color(0xFF0B050E), Color(0xFF2B1236), Color(0xFF5E2F70), Color(0xFFCDA9DB),
+            Color(0xFFDDD0E3), Color(0xFFF6EEF8), Color(0xFFC4B1CD), Color(0xFF2B1236), Color(0xFF6E5479),
+        ),
+        RpgWindow.FOREST to Window(
+            Color(0xFF030A06), Color(0xFF0E2A1B), Color(0xFF2F6B4A), Color(0xFFA8D2BC),
+            Color(0xFFCEDBD0), Color(0xFFEEF5EF), Color(0xFFB0C4B5), Color(0xFF0E2A1B), Color(0xFF4F6B5B),
+        ),
     )
 
-    override fun palette(dark: Boolean): Palette = if (dark) this.dark else light
-
-    // Cuatro tonos y ninguno más: el color de cada calendario no cabe en esta pantalla
-    override fun calendarColor(argb: Int, colors: Palette): Color = colors.ink
-
-    // Y el del tiempo tampoco: lo que cae o lo que se ve de lejos va en el tono suave
-    override fun toneColor(tone: Tone, colors: Palette): Color = when (tone) {
-        Tone.SHADE, Tone.FOG, Tone.RAIN -> colors.inkSoft
-        else -> colors.ink
-    }
-
-    // Un recuadro liso, de un solo trazo
-    override fun DrawScope.frame(colors: Palette, u: Float) {
-        steppedRect(inset = 0f, cut = 0f, color = colors.frame)
-        steppedRect(inset = u, cut = 0f, color = colors.surface)
+    override fun palette(dark: Boolean, options: ThemeOptions): Palette {
+        val window = windows.getValue(options.rpgWindow)
+        return if (dark) {
+            Palette(
+                background = window.background,
+                surface = window.surface,
+                ink = Color(0xFFF4F4F0),
+                inkSoft = window.inkSoft,
+                rule = window.rule,
+                sunday = Color(0xFFFF8A80),
+                saturday = Color(0xFF82B1FF),
+                accent = Color(0xFFFFD54A),
+                frame = Color(0xFFF4F4F0),
+            )
+        } else {
+            Palette(
+                background = window.paper,
+                surface = window.paperSurface,
+                ink = window.ink,
+                inkSoft = window.paperInkSoft,
+                rule = window.paperRule,
+                sunday = Color(0xFFC0392B),
+                saturday = Color(0xFF2A56A8),
+                accent = Color(0xFFC77700),
+                frame = window.ink,
+            )
+        }
     }
 }

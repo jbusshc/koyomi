@@ -15,6 +15,15 @@
     <string name="nav_settings">Ajustes</string>
     <string name="add_event_hint">Añadir un evento en tu app de calendario</string>
     <string name="settings_theme">Aspecto de la app</string>
+    <string name="settings_rpg_window">Color de las ventanas</string>
+    <string name="settings_rpg_frame">Lo gruesa que es la línea del marco</string>
+    <string name="opt_navy">Azul noche</string>
+    <string name="opt_black">Negro</string>
+    <string name="opt_plum">Ciruela</string>
+    <string name="opt_forest">Bosque</string>
+    <string name="opt_thin">Fino</string>
+    <string name="opt_normal">Normal</string>
+    <string name="opt_thick">Grueso</string>
     <string name="settings_mode">Claro u oscuro</string>
     <string name="settings_mode_system">Igual que el teléfono</string>
     <string name="settings_date_style">Cómo se escriben las fechas</string>
@@ -24,7 +33,7 @@
     <string name="settings_about">Sobre esta app</string>
     <string name="settings_privacy">Koyomi lee tu calendario y nunca escribe en él. Tus eventos nunca salen de tu teléfono. Lo único que usa internet es el tiempo, y solo si eliges una ciudad: se envían sus coordenadas a Open-Meteo.</string>
     <string name="settings_licenses">Fuentes y datos que usa Koyomi</string>
-    <string name="license_dotgothic16_use">Fuente de los temas RPG y レトロ</string>
+    <string name="license_dotgothic16_use">Fuente del tema RPG</string>
     <string name="license_zen_old_mincho_use">Fuente del tema 和風, recortada a los caracteres de uso corriente</string>
     <string name="license_holidays_use">Festivos nacionales de Japón</string>
     <string name="license_holidays">Los festivos hasta 2021 salen de la tabla que publica la Oficina del Gabinete de Japón (内閣府, 「国民の祝日」について). Desde 2022 se calculan con la ley vigente; los días de equinoccio son una estimación hasta que se anuncian oficialmente.</string>

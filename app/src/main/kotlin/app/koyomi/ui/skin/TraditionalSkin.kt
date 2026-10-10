@@ -27,6 +27,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.lerp
 import app.koyomi.engine.weather.Tone
+import app.koyomi.settings.ThemeOptions
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
@@ -75,7 +76,7 @@ object TraditionalSkin : KoyomiSkin {
         frame = Color(0xFF3D3A31),
     )
 
-    override fun palette(dark: Boolean): Palette = if (dark) this.dark else light
+    override fun palette(dark: Boolean, options: ThemeOptions): Palette = if (dark) this.dark else light
 
     override val font: FontFamily = FontFamily(Font(R.font.zen_old_mincho_subset))
     override val strong: FontWeight = FontWeight.Normal

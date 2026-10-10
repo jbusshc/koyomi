@@ -107,7 +107,7 @@ class DateWidget : AppWidgetProvider() {
             for (id in ids) {
                 val views = when (settings.skin) {
                     SkinId.STANDARD -> standard(app, content, look.dark)
-                    SkinId.JRPG, SkinId.TRADITIONAL, SkinId.RETRO -> image(app, content, look, manager.getAppWidgetOptions(id))
+                    SkinId.JRPG, SkinId.TRADITIONAL -> image(app, content, look, manager.getAppWidgetOptions(id))
                 }
                 views.setOnClickPendingIntent(R.id.widget_root, openApp(app))
                 manager.updateAppWidget(id, views)

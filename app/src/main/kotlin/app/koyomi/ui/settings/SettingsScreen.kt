@@ -43,7 +43,9 @@ import app.koyomi.engine.format.JaTime
 import app.koyomi.engine.format.TimeStyle
 import app.koyomi.engine.format.Youbi
 import app.koyomi.engine.reading.JaReading
+import app.koyomi.settings.FrameWeight
 import app.koyomi.settings.LearnMode
+import app.koyomi.settings.RpgWindow
 import app.koyomi.settings.Place
 import app.koyomi.settings.Settings
 import app.koyomi.settings.SkinId
@@ -82,6 +84,10 @@ class SettingsViewModel(app: Application) : AndroidViewModel(app) {
     fun setSkin(skin: SkinId) = viewModelScope.launch { store.setSkin(skin) }
 
     fun setMode(mode: ThemeMode) = viewModelScope.launch { store.setMode(mode) }
+
+    fun setRpgWindow(window: RpgWindow) = viewModelScope.launch { store.setRpgWindow(window) }
+
+    fun setRpgFrame(weight: FrameWeight) = viewModelScope.launch { store.setRpgFrame(weight) }
 
     fun setDateStyle(style: DateStyle) = viewModelScope.launch { store.setDateStyle(style) }
 
@@ -134,7 +140,21 @@ fun SettingsScreen(viewModel: SettingsViewModel = viewModel()) {
             Choice("スタンダード", null, settings.skin == SkinId.STANDARD, colors) { viewModel.setSkin(SkinId.STANDARD) }
             Choice("RPG", null, settings.skin == SkinId.JRPG, colors) { viewModel.setSkin(SkinId.JRPG) }
             Choice("和風", null, settings.skin == SkinId.TRADITIONAL, colors) { viewModel.setSkin(SkinId.TRADITIONAL) }
-            Choice("レトロ", null, settings.skin == SkinId.RETRO, colors) { viewModel.setSkin(SkinId.RETRO) }
+        }
+
+        // Lo que se puede ajustar de un tema solo aparece con ese tema
+        if (settings.skin == SkinId.JRPG) {
+            Section("ウィンドウ", stringResource(R.string.settings_rpg_window), colors) {
+                Choice("紺", stringResource(R.string.opt_navy), settings.options.rpgWindow == RpgWindow.NAVY, colors) { viewModel.setRpgWindow(RpgWindow.NAVY) }
+                Choice("黒", stringResource(R.string.opt_black), settings.options.rpgWindow == RpgWindow.BLACK, colors) { viewModel.setRpgWindow(RpgWindow.BLACK) }
+                Choice("紫", stringResource(R.string.opt_plum), settings.options.rpgWindow == RpgWindow.PLUM, colors) { viewModel.setRpgWindow(RpgWindow.PLUM) }
+                Choice("緑", stringResource(R.string.opt_forest), settings.options.rpgWindow == RpgWindow.FOREST, colors) { viewModel.setRpgWindow(RpgWindow.FOREST) }
+            }
+            Section("枠", stringResource(R.string.settings_rpg_frame), colors) {
+                Choice("細い", stringResource(R.string.opt_thin), settings.options.rpgFrame == FrameWeight.THIN, colors) { viewModel.setRpgFrame(FrameWeight.THIN) }
+                Choice("ふつう", stringResource(R.string.opt_normal), settings.options.rpgFrame == FrameWeight.NORMAL, colors) { viewModel.setRpgFrame(FrameWeight.NORMAL) }
+                Choice("太い", stringResource(R.string.opt_thick), settings.options.rpgFrame == FrameWeight.THICK, colors) { viewModel.setRpgFrame(FrameWeight.THICK) }
+            }
         }
 
         Section("明るさ", stringResource(R.string.settings_mode), colors) {

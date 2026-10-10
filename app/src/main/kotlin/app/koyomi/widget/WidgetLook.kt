@@ -14,7 +14,9 @@ import androidx.core.content.res.ResourcesCompat
 import app.koyomi.R
 import app.koyomi.settings.Settings
 import app.koyomi.settings.SkinId
+import app.koyomi.settings.ThemeOptions
 import app.koyomi.settings.ThemeMode
+import app.koyomi.ui.skin.PixelFrame
 import app.koyomi.ui.skin.skinOf
 import app.koyomi.ui.theme.Palette
 import kotlin.math.roundToInt
@@ -30,16 +32,16 @@ class WidgetLook(
     val colors: Palette,
     /** Nulo: la fuente del teléfono. */
     val typeface: Typeface?,
+    val options: ThemeOptions = ThemeOptions(),
 ) {
     /** Las marcas de evento, cuadradas en el tema de píxeles. */
-    val squareDots: Boolean get() = skin == SkinId.JRPG || skin == SkinId.RETRO
+    val squareDots: Boolean get() = skin == SkinId.JRPG
 
     /** Pinta el fondo y devuelve cuánto hay que dejar libre hasta el contenido por cada lado. */
     fun frame(canvas: Canvas, density: Float): Float = when (skin) {
         SkinId.STANDARD -> standardFrame(canvas, density)
         SkinId.JRPG -> jrpgFrame(canvas, density)
         SkinId.TRADITIONAL -> traditionalFrame(canvas, density)
-        SkinId.RETRO -> retroFrame(canvas, density)
     }
 
     private fun standardFrame(canvas: Canvas, density: Float): Float {
@@ -49,37 +51,22 @@ class WidgetLook(
         return 16 * density
     }
 
-    /** El mismo marco que en la app (JrpgSkin.window): borde con esquinas a escalón y línea fina dentro. */
+    /** La misma ventana que en la app (PixelFrame), con el grosor y el color que haya elegido el usuario. */
     private fun jrpgFrame(canvas: Canvas, density: Float): Float {
-        val u = (2 * density).roundToInt().coerceAtLeast(1).toFloat()
-        val thin = (u / 2).roundToInt().coerceAtLeast(1).toFloat()
+        val t = PixelFrame.border(options.rpgFrame, density)
         // Los lanzadores recortan el widget con esquinas redondas: la ventana se dibuja algo hacia
         // dentro, para que el recorte caiga en lo transparente y no se coma el marco
         val margin = (6 * density).roundToInt().toFloat()
         val fill = Paint()
-        fun stepped(frameInset: Float, cut: Float, color: Color) {
-            val inset = margin + frameInset
-            fill.color = color.toArgb()
-            canvas.drawRect(inset + cut, inset, canvas.width - inset - cut, canvas.height - inset, fill)
-            canvas.drawRect(inset, inset + cut, canvas.width - inset, canvas.height - inset - cut, fill)
+        for (rect in PixelFrame.rects(canvas.width.toFloat(), canvas.height.toFloat(), t, margin)) {
+            fill.color = when (rect.role) {
+                PixelFrame.Role.FRAME -> colors.frame
+                PixelFrame.Role.SURFACE -> colors.surface
+                PixelFrame.Role.HAIRLINE -> colors.frame.copy(alpha = 0.3f)
+            }.toArgb()
+            canvas.drawRect(rect.x, rect.y, rect.x + rect.w, rect.y + rect.h, fill)
         }
-        stepped(0f, u, colors.frame)
-        stepped(2 * u, u, colors.surface)
-        stepped(3 * u, 0f, colors.frame.copy(alpha = 0.3f))
-        stepped(3 * u + thin, 0f, colors.surface)
-        return margin + 6 * u
-    }
-
-    /** Como RetroSkin: un recuadro liso de un solo trazo, hacia dentro por lo mismo que el de RPG. */
-    private fun retroFrame(canvas: Canvas, density: Float): Float {
-        val u = (2 * density).roundToInt().coerceAtLeast(1).toFloat()
-        val margin = (6 * density).roundToInt().toFloat()
-        val fill = Paint()
-        fill.color = colors.frame.toArgb()
-        canvas.drawRect(margin, margin, canvas.width - margin, canvas.height - margin, fill)
-        fill.color = colors.surface.toArgb()
-        canvas.drawRect(margin + u, margin + u, canvas.width - margin - u, canvas.height - margin - u, fill)
-        return margin + 5 * u
+        return margin + PixelFrame.inset(t) + 6 * density
     }
 
     /** Una hoja de papel con un filete fino y un sello en la esquina. */
@@ -109,10 +96,10 @@ class WidgetLook(
             }
             val font = when (settings.skin) {
                 SkinId.STANDARD -> null
-                SkinId.JRPG, SkinId.RETRO -> R.font.dotgothic16_regular
+                SkinId.JRPG -> R.font.dotgothic16_regular
                 SkinId.TRADITIONAL -> R.font.zen_old_mincho_subset
             }
-            return WidgetLook(settings.skin, dark, skinOf(settings.skin).palette(dark), font?.let { ResourcesCompat.getFont(context, it) })
+            return WidgetLook(settings.skin, dark, skinOf(settings.skin).palette(dark, settings.options), font?.let { ResourcesCompat.getFont(context, it) }, settings.options)
         }
 
         /** Una imagen del tamaño exacto del widget, en píxeles de pantalla. */

@@ -16,7 +16,8 @@ módulos y de pruebas, y ningún código compartido.
 | **変換** | 西暦 ↔ 和暦, 漢数字, 干支, 旧暦, 六曜, 二十四節気 y la lectura en kana |
 | **設定** | Tema, claro u oscuro, formatos, ciudad del tiempo, aprendizaje, 暦注 y calendarios |
 
-Temas: **Standard**, **RPG**, **和風** y **レトロ**, cada uno claro y oscuro. Cada tema decide
+Temas: **Standard**, **RPG** y **和風**, cada uno claro y oscuro. El RPG se puede ajustar (color de
+las ventanas y grosor del marco). Cada tema decide
 también cómo se dibuja cada pieza (`KoyomiSkin`), no solo sus colores.
 
 Widgets (todos siguen el tema y el modo de la app): fecha, agenda, reloj, tiempo y **Resumen**, que

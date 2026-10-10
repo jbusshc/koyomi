@@ -19,6 +19,7 @@ import app.koyomi.engine.format.JaDateText
 import app.koyomi.engine.weather.Tone
 import app.koyomi.settings.Settings
 import app.koyomi.settings.SkinId
+import app.koyomi.settings.ThemeOptions
 import app.koyomi.settings.ThemeMode
 import app.koyomi.ui.Destination
 import app.koyomi.ui.theme.Palette
@@ -31,7 +32,7 @@ import app.koyomi.ui.theme.Palette
  * Si un tema nuevo pide una pieza que no está aquí, se añade aquí, no en la pantalla.
  */
 interface KoyomiSkin {
-    fun palette(dark: Boolean): Palette
+    fun palette(dark: Boolean, options: ThemeOptions = ThemeOptions()): Palette
 
     val font: FontFamily
 
@@ -99,6 +100,7 @@ enum class IconStyle { SOFT, INK, PIXEL }
 
 val LocalSkin = staticCompositionLocalOf<KoyomiSkin> { StandardSkin }
 val LocalPalette = staticCompositionLocalOf { StandardSkin.palette(dark = false) }
+val LocalThemeOptions = staticCompositionLocalOf { ThemeOptions() }
 
 @Composable
 fun skin(): KoyomiSkin = LocalSkin.current
@@ -110,7 +112,6 @@ fun skinOf(id: SkinId): KoyomiSkin = when (id) {
     SkinId.STANDARD -> StandardSkin
     SkinId.JRPG -> JrpgSkin
     SkinId.TRADITIONAL -> TraditionalSkin
-    SkinId.RETRO -> RetroSkin
 }
 
 @Composable
@@ -123,10 +124,11 @@ fun isDark(mode: ThemeMode): Boolean = when (mode) {
 @Composable
 fun KoyomiTheme(settings: Settings, content: @Composable () -> Unit) {
     val skin = skinOf(settings.skin)
-    val colors = skin.palette(isDark(settings.mode))
+    val colors = skin.palette(isDark(settings.mode), settings.options)
     CompositionLocalProvider(
         LocalSkin provides skin,
         LocalPalette provides colors,
+        LocalThemeOptions provides settings.options,
         LocalContentColor provides colors.ink,
         LocalTextStyle provides LocalTextStyle.current.copy(fontFamily = skin.font),
         content = content,

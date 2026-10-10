@@ -14,7 +14,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import java.util.Locale
 
-enum class SkinId { STANDARD, JRPG, TRADITIONAL, RETRO }
+enum class SkinId { STANDARD, JRPG, TRADITIONAL }
 
 enum class ThemeMode { SYSTEM, LIGHT, DARK }
 
@@ -30,6 +30,7 @@ data class Place(val name: String, val detail: String, val latitude: Double, val
 data class Settings(
     val skin: SkinId = SkinId.STANDARD,
     val mode: ThemeMode = ThemeMode.SYSTEM,
+    val options: ThemeOptions = ThemeOptions(),
     val dateStyle: DateStyle = DateStyle.EDUCATIONAL,
     val timeStyle: TimeStyle = TimeStyle.H24,
     /** 日 o 月: el primer día de la semana en la vista mensual. */
@@ -52,6 +53,10 @@ class SettingsStore(private val context: Context) {
         Settings(
             skin = enumOr(prefs[SKIN], defaults.skin),
             mode = enumOr(prefs[MODE], defaults.mode),
+            options = ThemeOptions(
+                rpgWindow = enumOr(prefs[RPG_WINDOW], defaults.options.rpgWindow),
+                rpgFrame = enumOr(prefs[RPG_FRAME], defaults.options.rpgFrame),
+            ),
             dateStyle = enumOr(prefs[DATE_STYLE], defaults.dateStyle),
             timeStyle = enumOr(prefs[TIME_STYLE], defaults.timeStyle),
             weekStart = enumOr(prefs[WEEK_START], defaults.weekStart),
@@ -65,6 +70,10 @@ class SettingsStore(private val context: Context) {
     }
 
     suspend fun setSkin(skin: SkinId) = context.dataStore.edit { it[SKIN] = skin.name }
+
+    suspend fun setRpgWindow(window: RpgWindow) = context.dataStore.edit { it[RPG_WINDOW] = window.name }
+
+    suspend fun setRpgFrame(weight: FrameWeight) = context.dataStore.edit { it[RPG_FRAME] = weight.name }
 
     suspend fun setMode(mode: ThemeMode) = context.dataStore.edit { it[MODE] = mode.name }
 
@@ -97,6 +106,8 @@ class SettingsStore(private val context: Context) {
     private companion object {
         val SKIN = stringPreferencesKey("skin")
         val MODE = stringPreferencesKey("mode")
+        val RPG_WINDOW = stringPreferencesKey("rpg_window")
+        val RPG_FRAME = stringPreferencesKey("rpg_frame")
         val DATE_STYLE = stringPreferencesKey("date_style")
         val TIME_STYLE = stringPreferencesKey("time_style")
         val WEEK_START = stringPreferencesKey("week_start")
