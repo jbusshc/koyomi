@@ -5,12 +5,10 @@ import app.koyomi.calendar.Agenda
 import app.koyomi.calendar.CalendarRepository
 import app.koyomi.calendar.DayEvent
 import app.koyomi.settings.SettingsStore
-import app.koyomi.widget.AgendaWidget
 import app.koyomi.widget.ClockWidget
 import app.koyomi.weather.WeatherRepository
-import app.koyomi.widget.DateWidget
+import app.koyomi.widget.WidgetConfigStore
 import app.koyomi.widget.SummaryWidget
-import app.koyomi.widget.WeatherWidget
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -43,6 +41,7 @@ class KoyomiApp : Application() {
     val calendar by lazy { CalendarRepository(this) }
     val settings by lazy { SettingsStore(this) }
     val weather by lazy { WeatherRepository(this) }
+    val widgets by lazy { WidgetConfigStore(this) }
 
     // Sube al volver a la app: el permiso, la fecha o la zona pueden haber cambiado mientras tanto
     private val resumed = MutableStateFlow(0)
@@ -62,10 +61,7 @@ class KoyomiApp : Application() {
             settings.settings.map { it.weather }.distinctUntilChanged().drop(1).collect { weather.refresh(it) }
         }
         appScope.launch {
-            weather.report.drop(1).collect {
-                WeatherWidget.refresh(this@KoyomiApp)
-                SummaryWidget.refresh(this@KoyomiApp)
-            }
+            weather.report.drop(1).collect { SummaryWidget.refresh(this@KoyomiApp) }
         }
     }
 
@@ -77,10 +73,7 @@ class KoyomiApp : Application() {
     }
 
     private fun refreshWidgets() {
-        DateWidget.refresh(this)
-        AgendaWidget.refresh(this)
         ClockWidget.refresh(this)
-        WeatherWidget.refresh(this)
         SummaryWidget.refresh(this)
     }
 

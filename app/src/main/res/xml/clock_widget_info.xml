@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Los minutos los pone el sistema; ClockWidget solo cambia 午前/午後 y la fecha -->
 <appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:configure="app.koyomi.widget.WidgetConfigActivity"
+    android:widgetFeatures="reconfigurable"
     android:description="@string/widget_clock_description"
     android:initialLayout="@layout/widget_clock"
     android:minWidth="180dp"

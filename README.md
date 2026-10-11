@@ -16,13 +16,17 @@ módulos y de pruebas, y ningún código compartido.
 | **変換** | 西暦 ↔ 和暦, 漢数字, 干支, 旧暦, 六曜, 二十四節気 y la lectura en kana |
 | **設定** | Tema, claro u oscuro, formatos, ciudad del tiempo, aprendizaje, 暦注 y calendarios |
 
-Temas: **Standard**, **RPG** y **和風**, cada uno claro y oscuro. El RPG se puede ajustar (color de
-las ventanas y grosor del marco). Cada tema decide
-también cómo se dibuja cada pieza (`KoyomiSkin`), no solo sus colores.
+Temas, cada uno claro y oscuro: **Standard**, **桜** (pasteles y flor de cerezo), **藍** (añil con
+las olas 青海波 y dorado), **夜景** (ciudad de noche en neón), **和風** (papel, tinta y bermellón) y
+**RPG** (ventana de menú de RPG; se puede ajustar el color de las ventanas y el grosor del marco).
+Cada tema decide también cómo se dibuja cada pieza (`KoyomiSkin`), no solo sus colores, y el día de
+la semana es siempre protagonista.
 
-Widgets (todos siguen el tema y el modo de la app): fecha, agenda, reloj, tiempo y **Resumen**, que
-enseña más cuanto más grande es (el tiempo, la fecha, máxima y mínima, el próximo evento, tres
-días, la lista de eventos y el mes).
+Widgets: **Resumen** y **Reloj**. El Resumen se configura al ponerlo (y al volver a configurarlo):
+
+- Contenido: automático (enseña más cuanto más grande es), solo la fecha, el tiempo, la agenda o el
+  mes entero con sus eventos; y qué piezas mostrar (tiempo, tres días, eventos, mes, lecturas).
+- Aspecto: tema y modo propios o los de la app, y fondo pleno, de cristal o sin fondo.
 
 ## Estructura
 
@@ -54,13 +58,14 @@ las clases de paquete y ya rompió una vez la carga de las tablas del motor.
 ### Ver un widget a varios tamaños
 
 La build de depuración trae un receptor que pinta un widget a los tamaños que se pidan y deja los
-PNG en la carpeta de archivos de la app:
+PNG en la carpeta de archivos de la app (`kind`: auto, date, weather, agenda, month, icons; `--es bg
+solid|glass|clear`):
 
 ```
 adb shell am broadcast -n app.koyomi/app.koyomi.debug.RenderReceiver \
-    --es kind summary --es sizes 168x115,347x244 --es skin JRPG --es mode DARK \
+    --es kind auto --es sizes 168x115,347x244 --es skin JRPG --es mode DARK \
     --es place Tokio:35.68:139.69
-adb exec-out run-as app.koyomi cat files/summary_JRPG_DARK_168x115.png > salida.png
+adb exec-out run-as app.koyomi cat files/auto_JRPG_DARK_168x115.png > salida.png
 ```
 
 `kind` es `summary`, `weather` o `icons` (la hoja de iconos del tiempo). Los tamaños son los que da

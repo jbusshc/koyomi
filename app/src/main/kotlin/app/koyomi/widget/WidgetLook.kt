@@ -38,18 +38,27 @@ class WidgetLook(
     /** Nulo: la fuente del teléfono. */
     val typeface: Typeface?,
     val options: ThemeOptions = ThemeOptions(),
+    val background: WidgetBackground = WidgetBackground.SOLID,
 ) {
     /** Las marcas de evento, cuadradas en el tema de píxeles. */
     val squareDots: Boolean get() = skin == SkinId.JRPG
 
     /** Pinta el fondo y devuelve cuánto hay que dejar libre hasta el contenido por cada lado. */
-    fun frame(canvas: Canvas, density: Float): Float = when (skin) {
-        SkinId.STANDARD -> standardFrame(canvas, density)
-        SkinId.JRPG -> jrpgFrame(canvas, density)
-        SkinId.TRADITIONAL -> traditionalFrame(canvas, density)
-        SkinId.SAKURA -> sakuraFrame(canvas, density)
-        SkinId.YAKEI -> yakeiFrame(canvas, density)
-        SkinId.AI -> aiFrame(canvas, density)
+    fun frame(canvas: Canvas, density: Float): Float {
+        // Sin fondo: solo el margen; el texto se ayuda de una sombra para leerse sobre cualquier fondo de pantalla
+        if (background == WidgetBackground.CLEAR) return 10 * density
+        val glass = background == WidgetBackground.GLASS
+        val layer = if (glass) canvas.saveLayerAlpha(0f, 0f, canvas.width.toFloat(), canvas.height.toFloat(), GLASS_ALPHA) else -1
+        val inset = when (skin) {
+            SkinId.STANDARD -> standardFrame(canvas, density)
+            SkinId.JRPG -> jrpgFrame(canvas, density)
+            SkinId.TRADITIONAL -> traditionalFrame(canvas, density)
+            SkinId.SAKURA -> sakuraFrame(canvas, density)
+            SkinId.YAKEI -> yakeiFrame(canvas, density)
+            SkinId.AI -> aiFrame(canvas, density)
+        }
+        if (glass) canvas.restoreToCount(layer)
+        return inset
     }
 
     private fun standardFrame(canvas: Canvas, density: Float): Float {
@@ -174,20 +183,36 @@ class WidgetLook(
     }
 
     companion object {
-        fun of(context: Context, settings: Settings): WidgetLook {
-            val dark = when (settings.mode) {
+        private const val GLASS_ALPHA = 200
+
+        /** Con el tema y el modo de [config] si los fija, y si no, los de la app. */
+        fun of(context: Context, settings: Settings, config: WidgetConfig = WidgetConfig()): WidgetLook {
+            val skin = config.skin ?: settings.skin
+            val dark = when (config.mode ?: settings.mode) {
                 ThemeMode.SYSTEM -> context.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK == Configuration.UI_MODE_NIGHT_YES
                 ThemeMode.LIGHT -> false
                 ThemeMode.DARK -> true
             }
-            val font = when (settings.skin) {
+            val font = when (skin) {
                 SkinId.STANDARD -> null
                 SkinId.JRPG -> R.font.dotgothic16_regular
                 SkinId.TRADITIONAL, SkinId.AI -> R.font.zen_old_mincho_subset
                 SkinId.SAKURA, SkinId.YAKEI -> null
             }
-            return WidgetLook(settings.skin, dark, skinOf(settings.skin).palette(dark, settings.options), font?.let { ResourcesCompat.getFont(context, it) }, settings.options)
+            var colors = skinOf(skin).palette(dark, settings.options)
+            if (config.background == WidgetBackground.CLEAR) colors = onWallpaper(colors)
+            return WidgetLook(skin, dark, colors, font?.let { ResourcesCompat.getFont(context, it) }, settings.options, config.background)
         }
+
+        /** Sin fondo propio, el texto es claro (con sombra): los rojos y azules se aclaran para leerse. */
+        private fun onWallpaper(colors: Palette): Palette = colors.copy(
+            surface = Color(0xFF1B1B1F),
+            ink = Color.White,
+            inkSoft = Color.White.copy(alpha = 0.82f),
+            rule = Color.White.copy(alpha = 0.35f),
+            sunday = Color(0xFFFF9A8F),
+            saturday = Color(0xFF9CC2FF),
+        )
 
         /** Una imagen del tamaño exacto del widget, en píxeles de pantalla. */
         fun bitmap(context: Context, options: Bundle, fallbackWidthDp: Int, fallbackHeightDp: Int): Bitmap {
@@ -195,7 +220,11 @@ class WidgetLook(
             // En vertical el widget mide el ancho mínimo y el alto máximo que da el lanzador
             val widthDp = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH).takeIf { it > 0 } ?: fallbackWidthDp
             val heightDp = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT).takeIf { it > 0 } ?: fallbackHeightDp
-            return Bitmap.createBitmap((widthDp * density).roundToInt(), (heightDp * density).roundToInt(), Bitmap.Config.ARGB_8888)
+            // Nunca más grande que la pantalla: el sistema rechaza imágenes de widget que pesan demasiado
+            val screen = context.resources.displayMetrics
+            val width = (widthDp * density).roundToInt().coerceIn(1, screen.widthPixels)
+            val height = (heightDp * density).roundToInt().coerceIn(1, screen.heightPixels)
+            return Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
         }
     }
 }

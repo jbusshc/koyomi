@@ -7,6 +7,8 @@ import android.appwidget.AppWidgetProvider
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.app.job.JobParameters
+import android.app.job.JobService
 import android.graphics.Bitmap
 import android.os.Bundle
 import android.widget.RemoteViews
@@ -50,6 +52,11 @@ class SummaryWidget : AppWidgetProvider() {
         }
     }
 
+    override fun onDeleted(context: Context, ids: IntArray) {
+        val app = context.applicationContext as KoyomiApp
+        app.appScope.launch { app.widgets.remove(ids) }
+    }
+
     override fun onDisabled(context: Context) {
         context.getSystemService(AlarmManager::class.java).cancel(nextRefresh(context))
         WidgetJobs.release(context)
@@ -64,6 +71,33 @@ class SummaryWidget : AppWidgetProvider() {
                 pending?.finish()
             }
         }
+    }
+
+    /** El aviso del sistema de que el calendario cambió: repinta los widgets. */
+    class CalendarChanged : JobService() {
+        override fun onStartJob(params: JobParameters): Boolean {
+            SummaryWidget.refresh(this)
+            return false
+        }
+
+        override fun onStopJob(params: JobParameters): Boolean = false
+    }
+
+    /** El trabajo periódico del tiempo: pide el parte y repinta los widgets. */
+    class WeatherRefresh : JobService() {
+        override fun onStartJob(params: JobParameters): Boolean {
+            val app = applicationContext as KoyomiApp
+            app.appScope.launch {
+                runCatching {
+                    app.weather.refresh(app.settings.settings.first().weather)
+                    SummaryWidget.refresh(app)
+                }
+                jobFinished(params, false)
+            }
+            return true
+        }
+
+        override fun onStopJob(params: JobParameters): Boolean = false
     }
 
     companion object {
@@ -90,7 +124,7 @@ class SummaryWidget : AppWidgetProvider() {
             var next = 0L
             for (id in ids) {
                 val bitmap = WidgetLook.bitmap(app, manager.getAppWidgetOptions(id), fallbackWidthDp = 300, fallbackHeightDp = 200)
-                val (data, snapshot) = renderSummary(app, bitmap, settings, Section.entries.toSet())
+                val (data, snapshot) = renderSummary(app, bitmap, settings, app.widgets.get(id))
                 next = snapshot?.nextChangeMillis() ?: next
                 val views = RemoteViews(app.packageName, R.layout.widget_date_image)
                 views.setImageViewBitmap(R.id.widget_image, bitmap)
@@ -130,25 +164,27 @@ class SummaryWidget : AppWidgetProvider() {
 }
 
 /**
- * Reúne lo que enseñan los widgets de [sections] y lo pinta en [bitmap]. Devuelve los datos y los
- * eventos, que dicen cuándo toca volver a pintar. También lo usa la prueba de tamaños de la build
- * de depuración.
+ * Reúne lo que enseña un widget con la configuración [config] y lo pinta en [bitmap]. Devuelve los
+ * datos y los eventos, que dicen cuándo toca volver a pintar. También lo usan la pantalla de
+ * configuración (su vista previa) y la prueba de tamaños de la build de depuración.
  */
 internal suspend fun renderSummary(
     app: KoyomiApp,
     bitmap: Bitmap,
     settings: Settings,
-    sections: Set<Section>,
+    config: WidgetConfig,
 ): Pair<SummaryData, AgendaSnapshot?> {
-    val look = WidgetLook.of(app, settings)
+    val look = WidgetLook.of(app, settings, config)
+    val sections = config.sections()
     val now = ZonedDateTime.now()
     val today = now.toLocalDate()
     val snapshot = if (Section.EVENTS in sections) loadAgenda(app, settings, now) else null
+    val busy = if (config.layout == WidgetLayout.MONTH && config.showEvents) loadBusyDays(app, settings, now) else emptySet()
 
     val place = settings.weather
     val data = SummaryData(
         // El tema 和風 escribe los números en kanji, como en la app
-        date = if (settings.skin == SkinId.TRADITIONAL) JaDate.kanji(today) else JaDate.of(today),
+        date = if (look.skin == SkinId.TRADITIONAL) JaDate.kanji(today) else JaDate.of(today),
         holiday = Shukujitsu.of(today),
         dateStyle = settings.dateStyle,
         place = place,
@@ -159,13 +195,13 @@ internal suspend fun renderSummary(
         reading = if (settings.learn != LearnMode.OFF) JaReading.monthDay(today) else null,
         noPlaceHint = app.getString(R.string.widget_weather_no_place),
         weekStart = settings.weekStart,
+        busyDays = busy,
     )
-    SummaryPainter(bitmap, look, app.resources.displayMetrics.density, data, sections).paint()
+    SummaryPainter(bitmap, look, app.resources.displayMetrics.density, data, sections, config).paint()
     return data to snapshot
 }
 
-/** Para la prueba de tamaños de la build de depuración: pinta [kind] («summary» o «weather»). */
-internal suspend fun renderSummaryForDebug(app: KoyomiApp, bitmap: Bitmap, settings: Settings, kind: String) {
-    val sections = if (kind == "weather") setOf(Section.WEATHER) else Section.entries.toSet()
-    renderSummary(app, bitmap, settings, sections)
+/** Para la prueba de tamaños de la build de depuración. */
+internal suspend fun renderSummaryForDebug(app: KoyomiApp, bitmap: Bitmap, settings: Settings, config: WidgetConfig) {
+    renderSummary(app, bitmap, settings, config)
 }

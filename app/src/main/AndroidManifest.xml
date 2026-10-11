@@ -16,41 +16,6 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.Koyomi">
 
-        <!-- La fecha de hoy en la pantalla de inicio. Los dos avisos del sistema son de los pocos que
-             todavía llegan a un receptor del manifest: sin ellos, cambiar la hora dejaría la fecha vieja -->
-        <receiver
-            android:name=".widget.DateWidget"
-            android:exported="true"
-            android:label="@string/widget_date_name">
-            <intent-filter>
-                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
-                <action android:name="android.intent.action.TIME_SET" />
-                <action android:name="android.intent.action.TIMEZONE_CHANGED" />
-            </intent-filter>
-            <meta-data
-                android:name="android.appwidget.provider"
-                android:resource="@xml/date_widget_info" />
-        </receiver>
-
-        <!-- La fecha y los próximos eventos. Un trabajo del sistema lo repinta cuando el calendario cambia -->
-        <receiver
-            android:name=".widget.AgendaWidget"
-            android:exported="true"
-            android:label="@string/widget_agenda_name">
-            <intent-filter>
-                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
-                <action android:name="android.intent.action.TIME_SET" />
-                <action android:name="android.intent.action.TIMEZONE_CHANGED" />
-            </intent-filter>
-            <meta-data
-                android:name="android.appwidget.provider"
-                android:resource="@xml/agenda_widget_info" />
-        </receiver>
-        <service
-            android:name=".widget.AgendaWidget$CalendarChanged"
-            android:exported="false"
-            android:permission="android.permission.BIND_JOB_SERVICE" />
-
         <!-- La hora en japonés. Los minutos corren solos; esto solo cambia 午前/午後 y la fecha -->
         <receiver
             android:name=".widget.ClockWidget"
@@ -66,7 +31,7 @@
                 android:resource="@xml/clock_widget_info" />
         </receiver>
 
-        <!-- Todo en uno: enseña más cuanto más grande se hace -->
+        <!-- Todo en uno: enseña más cuanto más grande se hace, y se configura al ponerlo -->
         <receiver
             android:name=".widget.SummaryWidget"
             android:exported="true"
@@ -81,22 +46,25 @@
                 android:resource="@xml/summary_widget_info" />
         </receiver>
 
-        <!-- El tiempo de la ciudad elegida. Con el widget puesto, un trabajo pide el parte cada pocas horas -->
-        <receiver
-            android:name=".widget.WeatherWidget"
-            android:exported="true"
-            android:label="@string/widget_weather_name">
-            <intent-filter>
-                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
-            </intent-filter>
-            <meta-data
-                android:name="android.appwidget.provider"
-                android:resource="@xml/weather_widget_info" />
-        </receiver>
         <service
-            android:name=".widget.WeatherWidget$Refresh"
+            android:name=".widget.SummaryWidget$CalendarChanged"
             android:exported="false"
             android:permission="android.permission.BIND_JOB_SERVICE" />
+        <service
+            android:name=".widget.SummaryWidget$WeatherRefresh"
+            android:exported="false"
+            android:permission="android.permission.BIND_JOB_SERVICE" />
+
+        <!-- La pantalla que se abre al poner un widget, y al volver a configurarlo -->
+        <activity
+            android:name=".widget.WidgetConfigActivity"
+            android:exported="true"
+            android:label="@string/widget_config_title"
+            android:theme="@style/Theme.Koyomi">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" />
+            </intent-filter>
+        </activity>
 
         <activity
             android:name=".MainActivity"

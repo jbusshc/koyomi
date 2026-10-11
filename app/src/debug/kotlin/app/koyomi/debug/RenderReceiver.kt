@@ -15,6 +15,9 @@ import app.koyomi.settings.Settings
 import app.koyomi.ui.skin.skinOf
 import app.koyomi.ui.weather.WeatherIcons
 import app.koyomi.widget.WidgetLook
+import app.koyomi.widget.WidgetBackground
+import app.koyomi.widget.WidgetConfig
+import app.koyomi.widget.WidgetLayout
 import app.koyomi.widget.renderSummaryForDebug
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -26,7 +29,7 @@ import kotlin.math.roundToInt
  * revisarlos sin tener que redimensionar nada en la pantalla de inicio.
  *
  *   adb shell am broadcast -n app.koyomi/app.koyomi.debug.RenderReceiver \\
- *       --es kind summary --es sizes 168x115,347x244 --es skin RPG --es mode DARK --es place Tokio:35.68:139.69
+ *       --es kind auto|date|weather|agenda|month|icons --es sizes 168x115,347x244 --es skin RPG --es mode DARK --es place Tokio:35.68:139.69
  *
  * Los tamaños son los que da el lanzador, en dp, ancho por alto.
  */
@@ -51,14 +54,17 @@ class RenderReceiver : BroadcastReceiver() {
                 app.weather.refresh(settings.weather, force = true)
 
                 val density = app.resources.displayMetrics.density
-                val tag = listOf(kind, settings.skin.name, settings.mode.name).joinToString("_")
+                val layout = WidgetLayout.entries.firstOrNull { it.name.equals(kind, true) } ?: WidgetLayout.AUTO
+                val background = intent.getStringExtra("bg")?.let { name -> WidgetBackground.entries.firstOrNull { it.name.equals(name, true) } } ?: WidgetBackground.SOLID
+                val config = WidgetConfig(layout = layout, background = background)
+                val tag = listOf(kind, settings.skin.name, settings.mode.name, background.name.takeIf { background != WidgetBackground.SOLID }).filterNotNull().joinToString("_")
                 if (kind == "icons") {
                     renderIcons(context, settings, density, File(context.filesDir, "${tag}.png"))
                     return@launch
                 }
                 for ((w, h) in sizes) {
                     val bitmap = Bitmap.createBitmap((w * density).roundToInt(), (h * density).roundToInt(), Bitmap.Config.ARGB_8888)
-                    renderSummaryForDebug(app, bitmap, settings, kind)
+                    renderSummaryForDebug(app, bitmap, settings, config)
                     File(context.filesDir, "${tag}_${w}x$h.png").outputStream().use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }
                 }
             } finally {

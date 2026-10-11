@@ -1,12 +1,15 @@
 package app.koyomi.widget
 
+import android.app.PendingIntent
 import android.app.job.JobInfo
 import android.app.job.JobScheduler
 import android.content.ComponentName
 import android.content.Context
+import android.content.Intent
 import android.provider.CalendarContract
 import androidx.compose.ui.graphics.Color
 import app.koyomi.KoyomiApp
+import app.koyomi.MainActivity
 import app.koyomi.calendar.Agenda
 import app.koyomi.calendar.DayEvent
 import app.koyomi.engine.format.DateStyle
@@ -62,6 +65,18 @@ internal suspend fun loadAgenda(app: KoyomiApp, settings: Settings, now: ZonedDa
     return AgendaSnapshot(true, today, now.zone, nowMillis, left, byDay[tomorrow].orEmpty())
 }
 
+/** Los días del mes de [now] que tienen algún evento. */
+internal suspend fun loadBusyDays(app: KoyomiApp, settings: Settings, now: ZonedDateTime): Set<LocalDate> {
+    if (!app.calendar.hasPermission()) return emptySet()
+    val first = now.toLocalDate().withDayOfMonth(1)
+    val days = generateSequence(first) { it.plusDays(1) }.takeWhile { it.month == first.month }.toList()
+    val instances = app.calendar.instancesOnce(
+        from = first.atStartOfDay(now.zone).toInstant(),
+        to = first.plusMonths(1).atStartOfDay(now.zone).toInstant(),
+    ).filter { it.calendarId !in settings.hiddenCalendars }
+    return Agenda.byDay(instances, days, now.zone).filterValues { it.isNotEmpty() }.keys
+}
+
 internal fun agendaRows(context: Context, look: WidgetLook, settings: Settings, snapshot: AgendaSnapshot): List<Row> = buildList {
     val colors = look.colors
     if (!snapshot.access) {
@@ -98,6 +113,7 @@ internal object WidgetJobs {
     private const val CALENDAR_JOB = 1
     private const val WEATHER_JOB = 2
     private const val WEATHER_EVERY_MS = 3 * 60 * 60 * 1000L
+    private const val WEATHER_FLEX_MS = 60 * 60 * 1000L
 
     /**
      * El calendario cambia con la app cerrada (una sincronización, un evento creado en otra app).
@@ -105,7 +121,7 @@ internal object WidgetJobs {
      */
     fun watchCalendar(app: KoyomiApp) {
         if (!app.calendar.hasPermission()) return
-        val job = JobInfo.Builder(CALENDAR_JOB, ComponentName(app, AgendaWidget.CalendarChanged::class.java))
+        val job = JobInfo.Builder(CALENDAR_JOB, ComponentName(app, SummaryWidget.CalendarChanged::class.java))
             .addTriggerContentUri(JobInfo.TriggerContentUri(CalendarContract.CONTENT_URI, JobInfo.TriggerContentUri.FLAG_NOTIFY_FOR_DESCENDANTS))
             .setTriggerContentUpdateDelay(1_000)
             .setTriggerContentMaxDelay(10_000)
@@ -115,9 +131,11 @@ internal object WidgetJobs {
 
     /** Pide el parte cada pocas horas, y solo con red. Sin ningún widget del tiempo, no se pide. */
     fun scheduleWeather(context: Context) {
-        val job = JobInfo.Builder(WEATHER_JOB, ComponentName(context, WeatherWidget.Refresh::class.java))
+        val job = JobInfo.Builder(WEATHER_JOB, ComponentName(context, SummaryWidget.WeatherRefresh::class.java))
             .setRequiredNetworkType(JobInfo.NETWORK_TYPE_ANY)
-            .setPeriodic(WEATHER_EVERY_MS)
+            // Con batería baja no se pide, y con margen para que el sistema lo junte con otros trabajos
+            .setRequiresBatteryNotLow(true)
+            .setPeriodic(WEATHER_EVERY_MS, WEATHER_FLEX_MS)
             .build()
         runCatching { context.getSystemService(JobScheduler::class.java).schedule(job) }
     }
@@ -125,7 +143,17 @@ internal object WidgetJobs {
     /** Los avisos se retiran cuando ya no queda ningún widget que los use. */
     fun release(context: Context) {
         val scheduler = context.getSystemService(JobScheduler::class.java)
-        if (!AgendaWidget.hasWidgets(context) && !SummaryWidget.hasWidgets(context)) scheduler.cancel(CALENDAR_JOB)
-        if (!WeatherWidget.hasWidgets(context) && !SummaryWidget.hasWidgets(context)) scheduler.cancel(WEATHER_JOB)
+        if (!SummaryWidget.hasWidgets(context)) {
+            scheduler.cancel(CALENDAR_JOB)
+            scheduler.cancel(WEATHER_JOB)
+        }
     }
 }
+
+/** Tocar un widget abre la app, o la trae al frente si ya estaba abierta. */
+internal fun openApp(context: Context): PendingIntent = PendingIntent.getActivity(
+    context,
+    1,
+    Intent(context, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP),
+    PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+)

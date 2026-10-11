@@ -54,6 +54,8 @@ import app.koyomi.settings.RpgWindow
 import app.koyomi.settings.SkinId
 import app.koyomi.settings.ThemeMode
 import app.koyomi.settings.ThemeOptions
+import app.koyomi.ui.components.OptionChoice
+import app.koyomi.ui.components.OptionSection
 import app.koyomi.ui.skin.isDark
 import app.koyomi.ui.skin.skinOf
 import app.koyomi.settings.Place
@@ -144,7 +146,7 @@ fun SettingsScreen(viewModel: SettingsViewModel = viewModel()) {
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = skin.screenPadding)) {
         Text("設定", color = colors.ink, fontSize = 28.sp, fontWeight = skin.strong, modifier = Modifier.padding(top = 28.dp, bottom = 4.dp))
 
-        Section("テーマ", stringResource(R.string.settings_theme), colors) {
+        OptionSection("テーマ", stringResource(R.string.settings_theme), colors) {
             for ((id, name, gloss) in listOf(
                 Triple(SkinId.STANDARD, "スタンダード", R.string.theme_standard),
                 Triple(SkinId.SAKURA, "桜", R.string.theme_sakura),
@@ -153,72 +155,72 @@ fun SettingsScreen(viewModel: SettingsViewModel = viewModel()) {
                 Triple(SkinId.TRADITIONAL, "和風", R.string.theme_traditional),
                 Triple(SkinId.JRPG, "RPG", R.string.theme_rpg),
             )) {
-                Choice(name, stringResource(gloss), settings.skin == id, colors, swatchesOf(id, settings.mode, settings.options)) { viewModel.setSkin(id) }
+                OptionChoice(name, stringResource(gloss), settings.skin == id, colors, swatchesOf(id, settings.mode, settings.options)) { viewModel.setSkin(id) }
             }
         }
 
         // Lo que se puede ajustar de un tema solo aparece con ese tema
         if (settings.skin == SkinId.JRPG) {
-            Section("ウィンドウ", stringResource(R.string.settings_rpg_window), colors) {
-                Choice("紺", stringResource(R.string.opt_navy), settings.options.rpgWindow == RpgWindow.NAVY, colors) { viewModel.setRpgWindow(RpgWindow.NAVY) }
-                Choice("黒", stringResource(R.string.opt_black), settings.options.rpgWindow == RpgWindow.BLACK, colors) { viewModel.setRpgWindow(RpgWindow.BLACK) }
-                Choice("紫", stringResource(R.string.opt_plum), settings.options.rpgWindow == RpgWindow.PLUM, colors) { viewModel.setRpgWindow(RpgWindow.PLUM) }
-                Choice("緑", stringResource(R.string.opt_forest), settings.options.rpgWindow == RpgWindow.FOREST, colors) { viewModel.setRpgWindow(RpgWindow.FOREST) }
+            OptionSection("ウィンドウ", stringResource(R.string.settings_rpg_window), colors) {
+                OptionChoice("紺", stringResource(R.string.opt_navy), settings.options.rpgWindow == RpgWindow.NAVY, colors) { viewModel.setRpgWindow(RpgWindow.NAVY) }
+                OptionChoice("黒", stringResource(R.string.opt_black), settings.options.rpgWindow == RpgWindow.BLACK, colors) { viewModel.setRpgWindow(RpgWindow.BLACK) }
+                OptionChoice("紫", stringResource(R.string.opt_plum), settings.options.rpgWindow == RpgWindow.PLUM, colors) { viewModel.setRpgWindow(RpgWindow.PLUM) }
+                OptionChoice("緑", stringResource(R.string.opt_forest), settings.options.rpgWindow == RpgWindow.FOREST, colors) { viewModel.setRpgWindow(RpgWindow.FOREST) }
             }
-            Section("枠", stringResource(R.string.settings_rpg_frame), colors) {
-                Choice("細い", stringResource(R.string.opt_thin), settings.options.rpgFrame == FrameWeight.THIN, colors) { viewModel.setRpgFrame(FrameWeight.THIN) }
-                Choice("ふつう", stringResource(R.string.opt_normal), settings.options.rpgFrame == FrameWeight.NORMAL, colors) { viewModel.setRpgFrame(FrameWeight.NORMAL) }
-                Choice("太い", stringResource(R.string.opt_thick), settings.options.rpgFrame == FrameWeight.THICK, colors) { viewModel.setRpgFrame(FrameWeight.THICK) }
+            OptionSection("枠", stringResource(R.string.settings_rpg_frame), colors) {
+                OptionChoice("細い", stringResource(R.string.opt_thin), settings.options.rpgFrame == FrameWeight.THIN, colors) { viewModel.setRpgFrame(FrameWeight.THIN) }
+                OptionChoice("ふつう", stringResource(R.string.opt_normal), settings.options.rpgFrame == FrameWeight.NORMAL, colors) { viewModel.setRpgFrame(FrameWeight.NORMAL) }
+                OptionChoice("太い", stringResource(R.string.opt_thick), settings.options.rpgFrame == FrameWeight.THICK, colors) { viewModel.setRpgFrame(FrameWeight.THICK) }
             }
         }
 
-        Section("明るさ", stringResource(R.string.settings_mode), colors) {
-            Choice("端末に合わせる", stringResource(R.string.settings_mode_system), settings.mode == ThemeMode.SYSTEM, colors) { viewModel.setMode(ThemeMode.SYSTEM) }
-            Choice("ライト", null, settings.mode == ThemeMode.LIGHT, colors) { viewModel.setMode(ThemeMode.LIGHT) }
-            Choice("ダーク", null, settings.mode == ThemeMode.DARK, colors) { viewModel.setMode(ThemeMode.DARK) }
+        OptionSection("明るさ", stringResource(R.string.settings_mode), colors) {
+            OptionChoice("端末に合わせる", stringResource(R.string.settings_mode_system), settings.mode == ThemeMode.SYSTEM, colors) { viewModel.setMode(ThemeMode.SYSTEM) }
+            OptionChoice("ライト", null, settings.mode == ThemeMode.LIGHT, colors) { viewModel.setMode(ThemeMode.LIGHT) }
+            OptionChoice("ダーク", null, settings.mode == ThemeMode.DARK, colors) { viewModel.setMode(ThemeMode.DARK) }
         }
 
-        Section("日付の表示", stringResource(R.string.settings_date_style), colors) {
-            Choice("シンプル", date.line(DateStyle.SIMPLE), settings.dateStyle == DateStyle.SIMPLE, colors) { viewModel.setDateStyle(DateStyle.SIMPLE) }
-            Choice("和暦", date.line(DateStyle.FULL), settings.dateStyle == DateStyle.FULL, colors) { viewModel.setDateStyle(DateStyle.FULL) }
-            Choice("和暦と西暦", date.line(DateStyle.FULL) + "\n" + date.seireki, settings.dateStyle == DateStyle.EDUCATIONAL, colors) {
+        OptionSection("日付の表示", stringResource(R.string.settings_date_style), colors) {
+            OptionChoice("シンプル", date.line(DateStyle.SIMPLE), settings.dateStyle == DateStyle.SIMPLE, colors) { viewModel.setDateStyle(DateStyle.SIMPLE) }
+            OptionChoice("和暦", date.line(DateStyle.FULL), settings.dateStyle == DateStyle.FULL, colors) { viewModel.setDateStyle(DateStyle.FULL) }
+            OptionChoice("和暦と西暦", date.line(DateStyle.FULL) + "\n" + date.seireki, settings.dateStyle == DateStyle.EDUCATIONAL, colors) {
                 viewModel.setDateStyle(DateStyle.EDUCATIONAL)
             }
         }
 
-        Section("時刻の表示", stringResource(R.string.settings_time_style), colors) {
-            Choice("24時間", JaTime.digits(sample, TimeStyle.H24), settings.timeStyle == TimeStyle.H24, colors) { viewModel.setTimeStyle(TimeStyle.H24) }
-            Choice("午前・午後", JaTime.digits(sample, TimeStyle.GOZEN_GOGO), settings.timeStyle == TimeStyle.GOZEN_GOGO, colors) {
+        OptionSection("時刻の表示", stringResource(R.string.settings_time_style), colors) {
+            OptionChoice("24時間", JaTime.digits(sample, TimeStyle.H24), settings.timeStyle == TimeStyle.H24, colors) { viewModel.setTimeStyle(TimeStyle.H24) }
+            OptionChoice("午前・午後", JaTime.digits(sample, TimeStyle.GOZEN_GOGO), settings.timeStyle == TimeStyle.GOZEN_GOGO, colors) {
                 viewModel.setTimeStyle(TimeStyle.GOZEN_GOGO)
             }
         }
 
-        Section("週の始まり", stringResource(R.string.settings_week_start), colors) {
+        OptionSection("週の始まり", stringResource(R.string.settings_week_start), colors) {
             for (day in listOf(Youbi.NICHI, Youbi.GETSU)) {
-                Choice(day.full, null, settings.weekStart == day, colors) { viewModel.setWeekStart(day) }
+                OptionChoice(day.full, null, settings.weekStart == day, colors) { viewModel.setWeekStart(day) }
             }
         }
 
-        Section("天気", stringResource(R.string.settings_weather), colors) {
+        OptionSection("天気", stringResource(R.string.settings_weather), colors) {
             Column(Modifier.fillMaxWidth().clip(skin.buttonShape).clickable { places = true }.padding(vertical = 10.dp)) {
                 Text(settings.weather?.name ?: "表示しない", color = colors.ink, fontSize = 16.sp)
                 Text("場所を選ぶ", color = colors.inkSoft, fontSize = 13.sp)
             }
         }
 
-        Section("学習", stringResource(R.string.settings_learn), colors) {
-            Choice("表示しない", null, settings.learn == LearnMode.OFF, colors) { viewModel.setLearn(LearnMode.OFF) }
-            Choice("読み方", JaReading.monthDay(today), settings.learn == LearnMode.READING, colors) { viewModel.setLearn(LearnMode.READING) }
-            Choice("読み方と意味", stringResource(R.string.settings_learn_meaning), settings.learn == LearnMode.MEANING, colors) { viewModel.setLearn(LearnMode.MEANING) }
+        OptionSection("学習", stringResource(R.string.settings_learn), colors) {
+            OptionChoice("表示しない", null, settings.learn == LearnMode.OFF, colors) { viewModel.setLearn(LearnMode.OFF) }
+            OptionChoice("読み方", JaReading.monthDay(today), settings.learn == LearnMode.READING, colors) { viewModel.setLearn(LearnMode.READING) }
+            OptionChoice("読み方と意味", stringResource(R.string.settings_learn_meaning), settings.learn == LearnMode.MEANING, colors) { viewModel.setLearn(LearnMode.MEANING) }
         }
 
-        Section("暦注", stringResource(R.string.settings_rekichu), colors) {
-            Choice("表示しない", null, !settings.rekichu, colors) { viewModel.setRekichu(false) }
-            Choice("表示する", "六曜・旧暦・二十四節気", settings.rekichu, colors) { viewModel.setRekichu(true) }
+        OptionSection("暦注", stringResource(R.string.settings_rekichu), colors) {
+            OptionChoice("表示しない", null, !settings.rekichu, colors) { viewModel.setRekichu(false) }
+            OptionChoice("表示する", "六曜・旧暦・二十四節気", settings.rekichu, colors) { viewModel.setRekichu(true) }
         }
 
         if (calendars.isNotEmpty()) {
-            Section("カレンダー", stringResource(R.string.settings_calendars), colors) {
+            OptionSection("カレンダー", stringResource(R.string.settings_calendars), colors) {
                 for (calendar in calendars) {
                     val shown = calendar.id !in settings.hiddenCalendars
                     CalendarRow(calendar, shown, colors) { viewModel.setCalendarShown(calendar.id, !shown) }
@@ -226,7 +228,7 @@ fun SettingsScreen(viewModel: SettingsViewModel = viewModel()) {
             }
         }
 
-        Section("このアプリについて", stringResource(R.string.settings_about), colors) {
+        OptionSection("このアプリについて", stringResource(R.string.settings_about), colors) {
             Text("Koyomi ${BuildConfig.VERSION_NAME}", color = colors.ink, fontSize = 16.sp, modifier = Modifier.padding(vertical = 10.dp))
             Text(stringResource(R.string.settings_privacy), color = colors.inkSoft, fontSize = 13.sp, lineHeight = 19.sp)
             Column(
@@ -242,42 +244,6 @@ fun SettingsScreen(viewModel: SettingsViewModel = viewModel()) {
             }
         }
         Spacer(Modifier.height(40.dp))
-    }
-}
-
-@Composable
-private fun Section(title: String, gloss: String, colors: Palette, content: @Composable () -> Unit) {
-    val skin = skin()
-    skin.Panel(
-        Modifier.fillMaxWidth(),
-        title = {
-            Column {
-                Text(title, color = colors.ink, fontSize = 17.sp, fontWeight = skin.strong)
-                Text(gloss, color = colors.inkSoft, fontSize = 12.sp)
-            }
-        },
-    ) { content() }
-}
-
-@Composable
-private fun Choice(label: String, example: String?, selected: Boolean, colors: Palette, swatches: List<Color> = emptyList(), onClick: () -> Unit) {
-    Row(
-        Modifier
-            .fillMaxWidth()
-            .clip(skin().buttonShape)
-            .clickable(onClick = onClick)
-            .padding(vertical = 10.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        skin().Mark(selected, null)
-        Column(Modifier.padding(start = 14.dp).weight(1f)) {
-            Text(label, color = colors.ink, fontSize = 16.sp)
-            if (example != null) Text(example, color = colors.inkSoft, fontSize = 13.sp)
-        }
-        // Cómo es cada tema, de un vistazo: su fondo, su tarjeta, su acento y su tinta
-        for (swatch in swatches) {
-            Box(Modifier.padding(start = 4.dp).size(16.dp).clip(CircleShape).background(swatch).border(1.dp, colors.rule, CircleShape))
-        }
     }
 }
 
@@ -326,15 +292,15 @@ private fun LicensesScreen(onBack: () -> Unit) {
 
         for ((name, use, license) in LICENSES) {
             val text = remember(license) { resources.openRawResource(license).bufferedReader().use { it.readText() } }
-            Section(name, stringResource(use), colors) {
+            OptionSection(name, stringResource(use), colors) {
                 // La licencia va tal cual, en la fuente del teléfono: es para leerla, no para lucirla
                 Text(text, color = colors.inkSoft, fontSize = 11.sp, lineHeight = 15.sp, fontFamily = FontFamily.Default, modifier = Modifier.padding(top = 8.dp))
             }
         }
-        Section("Open-Meteo", stringResource(R.string.license_weather_use), colors) {
+        OptionSection("Open-Meteo", stringResource(R.string.license_weather_use), colors) {
             Text(stringResource(R.string.license_weather), color = colors.inkSoft, fontSize = 13.sp, lineHeight = 19.sp, modifier = Modifier.padding(top = 8.dp))
         }
-        Section("国民の祝日", stringResource(R.string.license_holidays_use), colors) {
+        OptionSection("国民の祝日", stringResource(R.string.license_holidays_use), colors) {
             Text(stringResource(R.string.license_holidays), color = colors.inkSoft, fontSize = 13.sp, lineHeight = 19.sp, modifier = Modifier.padding(top = 8.dp))
         }
         Spacer(Modifier.height(40.dp))

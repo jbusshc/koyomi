@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Sin tamaño máximo: cuanto más grande, más enseña. SummaryWidget decide qué cabe -->
 <appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:configure="app.koyomi.widget.WidgetConfigActivity"
+    android:widgetFeatures="reconfigurable"
     android:description="@string/widget_summary_description"
     android:initialLayout="@layout/widget_summary_preview"
     android:minWidth="110dp"

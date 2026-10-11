@@ -45,6 +45,11 @@ class ClockWidget : AppWidgetProvider() {
         }
     }
 
+    override fun onDeleted(context: Context, ids: IntArray) {
+        val app = context.applicationContext as KoyomiApp
+        app.appScope.launch { app.widgets.remove(ids) }
+    }
+
     override fun onDisabled(context: Context) {
         context.getSystemService(AlarmManager::class.java).cancel(halfDay(context))
     }
@@ -76,8 +81,6 @@ class ClockWidget : AppWidgetProvider() {
             val ids = ids(app)
             if (ids.isEmpty()) return
             val settings = app.settings.settings.first()
-            val look = WidgetLook.of(app, settings)
-            val colors = look.colors
             val now = ZonedDateTime.now()
             val today = now.toLocalDate()
             val date = JaDate.of(today)
@@ -87,6 +90,8 @@ class ClockWidget : AppWidgetProvider() {
             val manager = AppWidgetManager.getInstance(app)
             val density = app.resources.displayMetrics.density
             for (id in ids) {
+                val look = WidgetLook.of(app, settings, app.widgets.get(id))
+                val colors = look.colors
                 val views = RemoteViews(app.packageName, R.layout.widget_clock)
                 val frame = WidgetLook.bitmap(app, manager.getAppWidgetOptions(id), fallbackWidthDp = 250, fallbackHeightDp = 80)
                 look.frame(Canvas(frame), density)

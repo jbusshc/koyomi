@@ -2,7 +2,9 @@ package app.koyomi.widget
 
 import android.graphics.Bitmap
 import android.graphics.Canvas
+import android.graphics.LinearGradient
 import android.graphics.Paint
+import android.graphics.Shader
 import android.text.TextPaint
 import android.text.TextUtils
 import androidx.compose.ui.graphics.Color
@@ -15,6 +17,10 @@ import app.koyomi.engine.holiday.Shukujitsu
 import app.koyomi.engine.weather.Sky
 import app.koyomi.engine.weather.Tenki
 import app.koyomi.settings.Place
+import app.koyomi.settings.SkinId
+import app.koyomi.ui.skin.AiSkin
+import app.koyomi.ui.skin.YakeiSkin
+import java.time.LocalDate
 import app.koyomi.ui.skin.skinOf
 import app.koyomi.ui.weather.WeatherIcons
 import app.koyomi.weather.WeatherReport
@@ -38,6 +44,8 @@ internal class SummaryData(
     val reading: String?,
     val noPlaceHint: String,
     val weekStart: Youbi,
+    /** Los días del mes con algún evento, para el calendario grande. Vacío si no se pidió. */
+    val busyDays: Set<LocalDate> = emptySet(),
 )
 
 /**
@@ -55,11 +63,16 @@ internal class SummaryPainter(
     private val density: Float,
     private val data: SummaryData,
     private val sections: Set<Section>,
+    private val config: WidgetConfig = WidgetConfig(),
 ) {
     private val canvas = Canvas(bitmap)
     private val colors = look.colors
     private val skin = skinOf(look.skin)
-    private val text = TextPaint(Paint.ANTI_ALIAS_FLAG).apply { typeface = look.typeface }
+    private val text = TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
+        typeface = look.typeface
+        // Sin fondo propio, una sombra suave deja leer sobre cualquier fondo de pantalla
+        if (look.background == WidgetBackground.CLEAR) setShadowLayer(3f * density, 0f, density, 0xAA000000.toInt())
+    }
     private val shape = Paint(Paint.ANTI_ALIAS_FLAG)
     private val sink = WeatherIcons.canvasSink(canvas)
 
@@ -72,6 +85,8 @@ internal class SummaryPainter(
         val width = bitmap.width / density - 2 * inset
         val height = bitmap.height / density - 2 * inset
         when {
+            config.layout == WidgetLayout.DATE -> dateLayout(left, top, width, height)
+            config.layout == WidgetLayout.MONTH -> if (height >= MONTH_LAYOUT_MIN_HEIGHT) monthLayout(left, top, width, height) else weekStrip(left, top, width, height)
             height < ROW_MODE_MAX_HEIGHT -> rowMode(left, top, width, height)
             width >= TWO_COLUMNS_MIN_WIDTH && hasWeather && sections.size > 1 -> twoColumns(left, top, width, height)
             else -> oneColumn(left, top, width, height)
@@ -85,7 +100,7 @@ internal class SummaryPainter(
 
         val columns = buildList {
             if (hasWeather) add(Column(if (data.report == null) 100f else 112f) { cx, cw -> centred(y, h, heroHeight(compact = true, cw)) { top -> hero(cx, top, cw, compact = true) } })
-            if (Section.DATE in sections) add(Column(88f) { cx, cw -> centred(y, h, DATE_BLOCK) { top -> dateBlock(cx, top, cw) } })
+            if (Section.DATE in sections) add(Column(DATE_COLUMN_MIN) { cx, cw -> centred(y, h, DATE_BLOCK) { top -> dateBlock(cx, top, cw) } })
             if (hasWeather && data.report != null) add(Column(70f) { cx, cw -> centred(y, h, HILO_BLOCK) { top -> hiloBlock(cx, top, cw) } })
             if (Section.EVENTS in sections) add(Column(120f, grow = true) { cx, cw -> centred(y, h, NEXT_BLOCK) { top -> nextEvent(cx, top, cw) } })
         }
@@ -125,7 +140,7 @@ internal class SummaryPainter(
             // línea con la máxima y la mínima
             val room = bottom - top
             val keepForEvents = Section.EVENTS in sections && room < FORECAST_BLOCK + 2 * EVENT_ROW_STACKED
-            if (room >= FORECAST_BLOCK && !keepForEvents) {
+            if (room >= FORECAST_BLOCK && !keepForEvents && config.showForecast) {
                 top += forecast(x, top, w) + GAP
             } else if (room >= HILO_LINE) {
                 top += hiloLine(x, top, w) + 2f
@@ -133,7 +148,7 @@ internal class SummaryPainter(
         }
         top += notes(x, top, w, bottom - top)
         if (Section.EVENTS in sections) top += events(x, top, w, bottom - top) + GAP
-        if (Section.DATE in sections && bottom - top >= MONTH_MIN) monthBlock(x, top, w, bottom - top)
+        if (Section.DATE in sections && config.showMonth && bottom - top >= MONTH_MIN) monthBlock(x, top, w, bottom - top)
     }
 
     private fun twoColumns(x: Float, y: Float, w: Float, h: Float) {
@@ -145,9 +160,9 @@ internal class SummaryPainter(
         var top = y
         top += hero(x, top, leftWidth, compact = h < 150f) + GAP
         if (data.report != null) {
-            if (top + FORECAST_BLOCK <= bottom) top += forecast(x, top, leftWidth) + GAP else if (top + HILO_LINE <= bottom) top += hiloLine(x, top, leftWidth) + GAP
+            if (top + FORECAST_BLOCK <= bottom && config.showForecast) top += forecast(x, top, leftWidth) + GAP else if (top + HILO_LINE <= bottom) top += hiloLine(x, top, leftWidth) + GAP
         }
-        val monthOnLeft = Section.DATE in sections && bottom - top >= MONTH_MIN
+        val monthOnLeft = Section.DATE in sections && config.showMonth && bottom - top >= MONTH_MIN
         if (monthOnLeft) monthBlock(x, top, leftWidth, bottom - top)
 
         shape.color = colors.rule.toArgb()
@@ -157,7 +172,7 @@ internal class SummaryPainter(
         if (Section.DATE in sections) rightTop += dateRow(rightX, rightTop, rightWidth) + GAP
         rightTop += notes(rightX, rightTop, rightWidth, bottom - rightTop)
         if (Section.EVENTS in sections) rightTop += events(rightX, rightTop, rightWidth, bottom - rightTop) + GAP
-        if (!monthOnLeft && Section.DATE in sections && bottom - rightTop >= MONTH_MIN) monthBlock(rightX, rightTop, rightWidth, bottom - rightTop)
+        if (!monthOnLeft && Section.DATE in sections && config.showMonth && bottom - rightTop >= MONTH_MIN) monthBlock(rightX, rightTop, rightWidth, bottom - rightTop)
     }
 
     // ---------------------------------------------------------------- bloques
@@ -207,33 +222,117 @@ internal class SummaryPainter(
         return maxOf(iconSize, lines)
     }
 
-    /** El día en grande, con el día de la semana debajo y la era al lado. Para una fila baja. */
+    /** El día de la semana, en un sello a la izquierda y la fecha al lado. Para una fila baja. */
     private fun dateBlock(x: Float, y: Float, w: Float) {
         val date = data.date
-        write(date.monthDay, x, y + 20f, 20f, colors.ink, maxWidth = w)
-        val youbi = "（${date.youbi.short}）"
-        val color = look.youbiColor(date.youbi, data.holiday != null)
-        val shown = write(youbi, x, y + 40f, 14f, color)
+        val size = BADGE_SMALL
+        weekdayBadge(x, y + (DATE_BLOCK - size) / 2, size)
+        val textX = x + size + 9f
+        val textW = w - size - 9f
+        write(date.monthDay, textX, y + 19f, fitSp(date.monthDay, 20f, 14f, textW), colors.ink, maxWidth = textW)
         val aside = data.holiday ?: date.year.takeIf { data.dateStyle != DateStyle.SIMPLE }
-        if (aside != null && w - shown > 40f) {
-            write(aside, x + shown + 6f, y + 40f, 12f, if (data.holiday != null) colors.sunday else colors.inkSoft, maxWidth = w - shown - 6f)
-        }
+        if (aside != null) write(aside, textX, y + 37f, 12f, if (data.holiday != null) colors.sunday else colors.inkSoft, maxWidth = textW)
     }
 
-    /** La fecha en una sola línea, con una raya debajo. Para columnas más altas. */
+    /** La fecha en una línea con su sello de día de la semana, y una raya debajo. Para columnas más altas. */
     private fun dateRow(x: Float, y: Float, w: Float): Float {
         val date = data.date
-        val baseline = y + 20f
-        val dateWidth = write(date.monthDay, x, baseline, 20f, colors.ink)
-        val color = look.youbiColor(date.youbi, data.holiday != null)
-        write("（${date.youbi.short}）", x + dateWidth, baseline, 14f, color)
+        val size = BADGE_ROW
+        weekdayBadge(x, y, size)
+        val baseline = y + size / 2 + 7f
+        val textX = x + size + 9f
+        val dateWidth = write(date.monthDay, textX, baseline, fitSp(date.monthDay, 20f, 14f, w - size - 9f), colors.ink, maxWidth = w - size - 9f)
         val aside = data.holiday ?: date.year.takeIf { data.dateStyle != DateStyle.SIMPLE }
-        if (aside != null) {
-            write(aside, x + w, baseline, 12f, if (data.holiday != null) colors.sunday else colors.inkSoft, maxWidth = w - dateWidth - 40f, alignRight = true)
+        if (aside != null && w - size - 9f - dateWidth > 44f) {
+            write(aside, x + w, baseline, 12f, if (data.holiday != null) colors.sunday else colors.inkSoft, maxWidth = w - size - dateWidth - 20f, alignRight = true)
         }
         shape.color = colors.rule.toArgb()
-        canvas.drawRect(x * density, (y + 28f) * density, (x + w) * density, (y + 28f) * density + density, shape)
+        canvas.drawRect(x * density, (y + size + 6f) * density, (x + w) * density, (y + size + 6f) * density + density, shape)
         return DATE_ROW
+    }
+
+    /**
+     * El día de la semana como protagonista: su kanji en un sello con la forma del tema. Los
+     * domingos y festivos van en rojo; los sábados, en azul.
+     */
+    private fun weekdayBadge(x: Float, y: Float, size: Float) {
+        val youbi = data.date.youbi
+        val special = data.holiday != null || youbi == Youbi.NICHI || youbi == Youbi.DO
+        val tone = when {
+            data.holiday != null || youbi == Youbi.NICHI -> colors.sunday
+            youbi == Youbi.DO -> colors.saturday
+            else -> when (look.skin) {
+                SkinId.SAKURA -> colors.accent
+                SkinId.YAKEI -> YakeiSkin.neon(colors).second
+                else -> colors.ink
+            }
+        }
+        val l = x * density
+        val t = y * density
+        val r = (x + size) * density
+        val b = (y + size) * density
+        var ink = tone
+
+        fun roundRect(radius: Float, fill: Int, line: Int?, lineWidth: Float = 1f) {
+            shape.style = Paint.Style.FILL
+            shape.color = fill
+            canvas.drawRoundRect(l, t, r, b, radius * density, radius * density, shape)
+            if (line != null) {
+                val half = lineWidth * density / 2
+                shape.style = Paint.Style.STROKE
+                shape.strokeWidth = lineWidth * density
+                shape.color = line
+                canvas.drawRoundRect(l + half, t + half, r - half, b - half, radius * density, radius * density, shape)
+                shape.style = Paint.Style.FILL
+            }
+        }
+
+        when (look.skin) {
+            SkinId.JRPG -> {
+                shape.color = tone.toArgb()
+                canvas.drawRect(l, t, r, b, shape)
+                ink = colors.surface
+            }
+            SkinId.TRADITIONAL -> {
+                // El sello bermellón; en sábado y domingo, con el color del día
+                roundRect(2f, (if (special) tone else colors.accent).toArgb(), null)
+                ink = colors.background
+            }
+            SkinId.SAKURA -> {
+                shape.color = tone.copy(alpha = 0.14f).toArgb()
+                canvas.drawOval(l, t, r, b, shape)
+                shape.style = Paint.Style.STROKE
+                shape.strokeWidth = density
+                shape.color = tone.copy(alpha = 0.35f).toArgb()
+                canvas.drawOval(l + density / 2, t + density / 2, r - density / 2, b - density / 2, shape)
+                shape.style = Paint.Style.FILL
+            }
+            SkinId.YAKEI -> {
+                val (pink, cyan) = YakeiSkin.neon(colors)
+                val end = if (look.dark) Color(0xFF7A3CFF) else cyan
+                shape.shader = LinearGradient(l, t, r, b, pink.toArgb(), end.toArgb(), Shader.TileMode.CLAMP)
+                canvas.drawRoundRect(l, t, r, b, size * 0.28f * density, size * 0.28f * density, shape)
+                shape.shader = null
+                ink = Color.White
+            }
+            SkinId.AI -> {
+                val (banner, _) = AiSkin.banner(colors)
+                val onBanner = when {
+                    data.holiday != null || youbi == Youbi.NICHI -> Color(0xFFF08C7A)
+                    youbi == Youbi.DO -> Color(0xFF8DB7F0)
+                    else -> Color(0xFFE9D8A6)
+                }
+                roundRect(6f, banner.toArgb(), onBanner.toArgb(), 1.5f)
+                ink = onBanner
+            }
+            SkinId.STANDARD -> roundRect(size * 0.28f, tone.copy(alpha = 0.14f).toArgb(), tone.copy(alpha = 0.35f).toArgb())
+        }
+        val label = youbi.short
+        text.textSize = size * 0.56f * density
+        text.color = ink.toArgb()
+        val metrics = text.fontMetrics
+        val baseline = (t + b) / 2 - (metrics.ascent + metrics.descent) / 2
+        canvas.drawText(label, (l + r) / 2 - text.measureText(label) / 2, baseline, text)
     }
 
     private fun hiloBlock(x: Float, y: Float, w: Float) {
@@ -267,7 +366,7 @@ internal class SummaryPainter(
 
     /** Las líneas que acompañan a la fecha (la lectura y el 暦注), las que quepan. */
     private fun notes(x: Float, y: Float, w: Float, available: Float): Float {
-        if (Section.DATE !in sections) return 0f
+        if (Section.DATE !in sections || !config.showNotes) return 0f
         var top = y
         for (line in listOfNotNull(data.reading, data.note)) {
             if (top + NOTE_ROW - y > available) break
@@ -351,20 +450,23 @@ internal class SummaryPainter(
         return top - y
     }
 
-    /** El mes de hoy en pequeño: los días en su semana, domingos y festivos en rojo, hoy resaltado. */
-    private fun monthBlock(x: Float, y: Float, w: Float, available: Float): Float {
+    /** El mes de hoy: los días en su semana, domingos y festivos en rojo, hoy resaltado y, si hay sitio, un punto bajo los días con eventos. */
+    private fun monthBlock(x: Float, y: Float, w: Float, available: Float, large: Boolean = false): Float {
         val today = data.date.date
         val first = today.withDayOfMonth(1)
         val length = today.lengthOfMonth()
         val lead = (Youbi.of(first).ordinal - data.weekStart.ordinal + 7) % 7
         val weeks = (lead + length + 6) / 7
-        val headerHeight = 15f
-        val rowHeight = ((available - headerHeight) / weeks).coerceIn(14f, 19f)
+        val headerHeight = if (large) 20f else 15f
+        val rowHeight = ((available - headerHeight) / weeks).coerceIn(14f, if (large) 36f else 19f)
+        val numberSp = if (rowHeight >= 28f) 14f else if (rowHeight >= 22f) 12f else 11f
+        val dots = rowHeight >= 26f
         val cell = w / 7f
 
         MonthGrid.weekdays(data.weekStart).forEachIndexed { column, youbi ->
             val label = youbi.short
-            write(label, x + cell * column + (cell - measure(label, 10f)) / 2, y + 11f, 10f, look.youbiColor(youbi, holiday = false))
+            val labelSp = if (large) 12f else 10f
+            write(label, x + cell * column + (cell - measure(label, labelSp)) / 2, y + if (large) 14f else 11f, labelSp, look.youbiColor(youbi, holiday = false))
         }
         for (day in 1..length) {
             val index = lead + day - 1
@@ -387,9 +489,123 @@ internal class SummaryPainter(
                 else canvas.drawOval(cx * density, cy * density, (cx + size) * density, (cy + size) * density, shape)
             }
             val label = day.toString()
-            write(label, left + (cell - measure(label, 11f)) / 2, top + rowHeight / 2 + 4f, 11f, color)
+            val lift = if (dots) 2f else 0f
+            write(label, left + (cell - measure(label, numberSp)) / 2, top + rowHeight / 2 + numberSp * 0.35f - lift, numberSp, color)
+            if (dots && date in data.busyDays) {
+                shape.color = (if (isToday) colors.surface else colors.accent).toArgb()
+                dotAt(left + cell / 2 - 2f, top + rowHeight - 7f, 4f)
+            }
         }
         return headerHeight + weeks * rowHeight
+    }
+
+    // ---------------------------------------------------------------- disposiciones propias
+
+    /** Solo la fecha: el día de la semana en grande, con el día y la era. Ancho: sello a la izquierda; alto: centrado. */
+    private fun dateLayout(x: Float, y: Float, w: Float, h: Float) {
+        val date = data.date
+        val holiday = data.holiday
+        val year = if (data.dateStyle != DateStyle.SIMPLE) date.year else null
+        val lines = if (config.showNotes) listOfNotNull(data.reading, data.note) else emptyList()
+        if (w >= h * 1.5f) {
+            val size = minOf(h - 4f, w * 0.27f, 120f)
+            weekdayBadge(x, y + (h - size) / 2, size)
+            val textX = x + size + 14f
+            val textW = w - size - 14f
+            var daySp = (size * 0.42f).coerceIn(20f, 38f)
+            // Con poco ancho, la fecha se encoge antes que cortarse
+            val needed = measure(date.monthDay, daySp)
+            if (needed > textW) daySp = (daySp * textW / needed).coerceAtLeast(13f)
+            // El bloque de texto, centrado en vertical junto al sello
+            val rows = listOfNotNull(year?.let { 18f }, daySp + 4f, holiday?.let { 20f }) + lines.map { 16f }
+            var baseline = y + ((h - rows.sum()) / 2).coerceAtLeast(0f)
+            if (year != null) {
+                baseline += 14f
+                write(year, textX, baseline, 13f, colors.inkSoft, maxWidth = textW)
+                baseline += 4f
+            }
+            baseline += daySp * 0.9f
+            write(date.monthDay, textX, baseline, daySp, colors.ink, maxWidth = textW)
+            baseline += 4f
+            if (holiday != null) {
+                baseline += 16f
+                write(holiday, textX, baseline, 14f, colors.sunday, maxWidth = textW)
+            }
+            for (line in lines) {
+                baseline += 16f
+                if (baseline > y + h) break
+                write(line, textX, baseline, 12f, colors.inkSoft, maxWidth = textW)
+            }
+        } else {
+            val size = minOf(w * 0.5f, h * 0.42f, 130f)
+            val daySp = (size * 0.3f).coerceIn(20f, 34f)
+            val total = size + 12f + daySp + (if (year != null) 18f else 0f) + (if (holiday != null) 20f else 0f) + lines.size * 17f
+            var top = y + ((h - total) / 2).coerceAtLeast(0f)
+            weekdayBadge(x + (w - size) / 2, top, size)
+            top += size + 12f + daySp * 0.9f
+            write(date.monthDay, x + (w - measure(date.monthDay, daySp)) / 2, top, daySp, colors.ink, maxWidth = w)
+            if (year != null) {
+                top += 18f
+                write(year, x + (w - measure(year, 13f)) / 2, top, 13f, colors.inkSoft, maxWidth = w)
+            }
+            if (holiday != null) {
+                top += 20f
+                write(holiday, x + (w - measure(holiday, 14f)) / 2, top, 14f, colors.sunday, maxWidth = w)
+            }
+            for (line in lines) {
+                top += 17f
+                if (top > y + h) break
+                write(line, x + (w - measure(line, 12f)) / 2, top, 12f, colors.inkSoft, maxWidth = w)
+            }
+        }
+    }
+
+    /** El mes entero y grande, con su nombre arriba y un punto bajo los días con eventos. */
+    private fun monthLayout(x: Float, y: Float, w: Float, h: Float) {
+        val date = data.date
+        val header = 28f
+        write(date.month, x + 2f, y + 20f, 20f, colors.ink)
+        if (data.dateStyle != DateStyle.SIMPLE) write(date.year, x + w - 2f, y + 19f, 13f, colors.inkSoft, alignRight = true)
+        shape.color = colors.rule.toArgb()
+        canvas.drawRect(x * density, (y + header - 2f) * density, (x + w) * density, (y + header - 2f) * density + density, shape)
+        monthBlock(x, y + header + 4f, w, h - header - 4f, large = true)
+    }
+
+    /** La semana de hoy en una fila, para cuando el mes no cabe: cada día con su letra y su número. */
+    private fun weekStrip(x: Float, y: Float, w: Float, h: Float) {
+        val today = data.date.date
+        val start = today.minusDays(((Youbi.of(today).ordinal - data.weekStart.ordinal + 7) % 7).toLong())
+        val cell = w / 7f
+        val numberSp = minOf(if (h >= 56f) 18f else 15f, cell * 0.6f)
+        val circle = minOf(cell - 2f, numberSp + 10f)
+        val blockHeight = 20f + circle
+        val top = y + ((h - blockHeight) / 2).coerceAtLeast(0f)
+        for (index in 0 until 7) {
+            val day = start.plusDays(index.toLong())
+            val youbi = Youbi.of(day)
+            val holiday = Shukujitsu.of(day) != null
+            val cx = x + cell * index + cell / 2
+            val label = youbi.short
+            write(label, cx - measure(label, 11f) / 2, top + 11f, 11f, look.youbiColor(youbi, holiday = false))
+            val isToday = day == today
+            val cy = top + 20f + circle / 2
+            if (isToday) {
+                shape.color = colors.ink.toArgb()
+                val l = (cx - circle / 2) * density
+                val t = (cy - circle / 2) * density
+                val r = (cx + circle / 2) * density
+                val b = (cy + circle / 2) * density
+                if (look.squareDots) canvas.drawRect(l, t, r, b, shape) else canvas.drawOval(l, t, r, b, shape)
+            }
+            val color = when {
+                isToday -> colors.surface
+                holiday || youbi == Youbi.NICHI -> colors.sunday
+                youbi == Youbi.DO -> colors.saturday
+                else -> colors.ink
+            }
+            val number = day.dayOfMonth.toString()
+            write(number, cx - measure(number, numberSp) / 2, cy + numberSp * 0.35f, numberSp, color)
+        }
     }
 
     // ---------------------------------------------------------------- pincel
@@ -402,6 +618,12 @@ internal class SummaryPainter(
         } else {
             canvas.drawOval(x * density, y * density, (x + size) * density, (y + size) * density, shape)
         }
+    }
+
+    /** El mayor tamaño, de [max] a [min], con el que [value] cabe en [width] dp. */
+    private fun fitSp(value: String, max: Float, min: Float, width: Float): Float {
+        val needed = measure(value, max)
+        return if (needed <= width) max else (max * width / needed).coerceAtLeast(min)
     }
 
     private fun measure(value: String, sp: Float): Float {
@@ -425,8 +647,13 @@ internal class SummaryPainter(
         const val TWO_COLUMNS_MIN_WIDTH = 250f
         const val COLUMN_GAP = 14f
         const val GAP = 8f
-        const val DATE_ROW = 36f
-        const val DATE_BLOCK = 46f
+        const val DATE_ROW = 44f
+        const val DATE_BLOCK = 42f
+        const val BADGE_SMALL = 38f
+        const val BADGE_ROW = 38f
+        const val DATE_COLUMN_MIN = 128f
+        // Por debajo de este alto (dp) el mes no cabe: se enseña solo la semana
+        const val MONTH_LAYOUT_MIN_HEIGHT = 150f
         const val HILO_BLOCK = 40f
         const val NEXT_BLOCK = 40f
         const val HILO_LINE = 20f
