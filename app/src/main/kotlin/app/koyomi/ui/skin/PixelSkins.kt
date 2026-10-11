@@ -91,8 +91,8 @@ abstract class PixelSkin : KoyomiSkin {
     override fun DateHeader(date: JaDateText, style: DateStyle, holiday: String?, time: String, modifier: Modifier) {
         val colors = palette()
         val main = date.monthDay
-        val youbi = "（${date.youbi.short}）"
-        val shown = typed(main.length + youbi.length)
+        val shown = typed(main.length)
+        val youbiColor = youbiColor(date.youbi, holiday != null, colors)
         Column(modifier.padding(top = 16.dp, bottom = 5.dp).window(colors).padding(horizontal = 16.dp, vertical = 14.dp)) {
             // Arriba, como en una ventana de estado: el año a un lado y la hora al otro
             Row(Modifier.fillMaxWidth()) {
@@ -100,17 +100,25 @@ abstract class PixelSkin : KoyomiSkin {
                 Text(time, color = colors.accent, fontSize = 18.sp)
             }
             // La fecha se escribe letra a letra; lo que falta ya ocupa su sitio, para que nada salte
-            Text(
-                buildAnnotatedString {
-                    val youbiColor = youbiColor(date.youbi, holiday != null, colors)
-                    (main + youbi).forEachIndexed { index, char ->
-                        val color = if (index < main.length) colors.ink else youbiColor
-                        withStyle(SpanStyle(color = if (index < shown) color else Color.Transparent)) { append(char) }
-                    }
-                },
-                fontSize = 40.sp,
-                maxLines = 1,
-            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    buildAnnotatedString {
+                        main.forEachIndexed { index, char ->
+                            withStyle(SpanStyle(color = if (index < shown) colors.ink else Color.Transparent)) { append(char) }
+                        }
+                    },
+                    fontSize = 40.sp,
+                    maxLines = 1,
+                    modifier = Modifier.weight(1f),
+                )
+                // El día de la semana, como la opción marcada de un menú: letra oscura sobre su color
+                Box(
+                    Modifier.size(52.dp).background(if (shown >= main.length) youbiColor else Color.Transparent),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(date.youbi.short, color = if (shown >= main.length) colors.surface else Color.Transparent, fontSize = 34.sp)
+                }
+            }
             date.secondLine(style)?.let { Text(it, color = colors.inkSoft, fontSize = 14.sp) }
             if (holiday != null) Text(holiday, color = colors.sunday, fontSize = 16.sp, modifier = Modifier.padding(top = 6.dp))
         }

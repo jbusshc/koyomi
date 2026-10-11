@@ -112,6 +112,9 @@ fun skinOf(id: SkinId): KoyomiSkin = when (id) {
     SkinId.STANDARD -> StandardSkin
     SkinId.JRPG -> JrpgSkin
     SkinId.TRADITIONAL -> TraditionalSkin
+    SkinId.SAKURA -> SakuraSkin
+    SkinId.AI -> AiSkin
+    SkinId.YAKEI -> YakeiSkin
 }
 
 @Composable

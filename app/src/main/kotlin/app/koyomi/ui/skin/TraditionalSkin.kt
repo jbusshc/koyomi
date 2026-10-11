@@ -137,7 +137,13 @@ object TraditionalSkin : KoyomiSkin {
                 if (holiday != null) Text(holiday, color = colors.sunday, fontSize = 16.sp, modifier = Modifier.padding(top = 10.dp))
             }
             // Y la fecha, que se lee de derecha a izquierda: la era, el día y el día de la semana
-            Vertical(kanji.youbi.full, 17.sp, youbiColor(kanji.youbi, holiday != null, colors, other = colors.inkSoft), Modifier.padding(top = 8.dp))
+            val youbiColor = youbiColor(kanji.youbi, holiday != null, colors, other = colors.ink)
+            Column(Modifier.padding(top = 6.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                Box(Modifier.size(46.dp).border(1.5.dp, youbiColor), contentAlignment = Alignment.Center) {
+                    Text(kanji.youbi.short, color = youbiColor, fontSize = 30.sp)
+                }
+                Vertical("曜日", 13.sp, youbiColor.copy(alpha = 0.85f), Modifier.padding(top = 6.dp))
+            }
             Vertical(kanji.monthDay, 40.sp, colors.ink, Modifier.padding(horizontal = 14.dp))
             if (style != DateStyle.SIMPLE) Vertical(kanji.year, 19.sp, colors.inkSoft, Modifier.padding(top = 8.dp))
         }

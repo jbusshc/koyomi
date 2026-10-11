@@ -14,7 +14,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import java.util.Locale
 
-enum class SkinId { STANDARD, JRPG, TRADITIONAL }
+enum class SkinId { STANDARD, JRPG, TRADITIONAL, SAKURA, AI, YAKEI }
 
 enum class ThemeMode { SYSTEM, LIGHT, DARK }
 

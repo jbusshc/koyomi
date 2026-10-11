@@ -6,7 +6,6 @@ import androidx.activity.SystemBarStyle
 import androidx.activity.compose.LocalActivity
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.compose.BackHandler
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -29,6 +28,7 @@ import app.koyomi.ui.convert.ConvertScreen
 import app.koyomi.ui.month.MonthScreen
 import app.koyomi.ui.settings.SettingsScreen
 import app.koyomi.ui.skin.KoyomiTheme
+import app.koyomi.ui.skin.backdrop
 import app.koyomi.ui.skin.isDark
 import app.koyomi.ui.skin.palette
 import app.koyomi.ui.skin.skin
@@ -99,7 +99,7 @@ fun AppRoot() {
     }
 
     KoyomiTheme(settings) {
-        Column(Modifier.fillMaxSize().background(palette().background).safeDrawingPadding()) {
+        Column(Modifier.fillMaxSize().backdrop(palette()).safeDrawingPadding()) {
             Screens(current, Modifier.weight(1f))
             skin().NavBar(current) { current = it }
         }

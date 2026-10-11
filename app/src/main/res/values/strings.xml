@@ -26,6 +26,12 @@
     <string name="opt_thin">Thin</string>
     <string name="opt_normal">Normal</string>
     <string name="opt_thick">Thick</string>
+    <string name="theme_standard">Clean and airy</string>
+    <string name="theme_sakura">Soft pastels and cherry blossom</string>
+    <string name="theme_ai">Indigo dye, with the seigaiha wave pattern</string>
+    <string name="theme_yakei">A city at night, in neon</string>
+    <string name="theme_traditional">Paper, ink and vermilion, with the date upright</string>
+    <string name="theme_rpg">An old Japanese RPG menu</string>
     <string name="settings_mode">Light or dark</string>
     <string name="settings_mode_system">Same as the phone</string>
     <string name="settings_date_style">How dates are written</string>

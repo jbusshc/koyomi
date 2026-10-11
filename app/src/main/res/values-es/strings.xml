@@ -24,6 +24,12 @@
     <string name="opt_thin">Fino</string>
     <string name="opt_normal">Normal</string>
     <string name="opt_thick">Grueso</string>
+    <string name="theme_standard">Limpio y con aire</string>
+    <string name="theme_sakura">Pasteles suaves y flor de cerezo</string>
+    <string name="theme_ai">Añil, con las olas seigaiha</string>
+    <string name="theme_yakei">Una ciudad de noche, en neón</string>
+    <string name="theme_traditional">Papel, tinta y bermellón, con la fecha en vertical</string>
+    <string name="theme_rpg">El menú de un RPG japonés de los de antes</string>
     <string name="settings_mode">Claro u oscuro</string>
     <string name="settings_mode_system">Igual que el teléfono</string>
     <string name="settings_date_style">Cómo se escriben las fechas</string>

@@ -18,4 +18,7 @@ data class Palette(
     val accent: Color,
     /** El marco de las ventanas, en los temas que las tienen. */
     val frame: Color,
+    /** Un fondo que va de [backdropTop] a [backdropBottom]. Iguales: un color llano. */
+    val backdropTop: Color = background,
+    val backdropBottom: Color = background,
 )

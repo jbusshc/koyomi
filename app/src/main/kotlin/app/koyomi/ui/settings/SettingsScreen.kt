@@ -1,6 +1,11 @@
 package app.koyomi.ui.settings
 
 import android.app.Application
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.border
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -46,10 +51,13 @@ import app.koyomi.engine.reading.JaReading
 import app.koyomi.settings.FrameWeight
 import app.koyomi.settings.LearnMode
 import app.koyomi.settings.RpgWindow
-import app.koyomi.settings.Place
-import app.koyomi.settings.Settings
 import app.koyomi.settings.SkinId
 import app.koyomi.settings.ThemeMode
+import app.koyomi.settings.ThemeOptions
+import app.koyomi.ui.skin.isDark
+import app.koyomi.ui.skin.skinOf
+import app.koyomi.settings.Place
+import app.koyomi.settings.Settings
 import app.koyomi.ui.skin.palette
 import app.koyomi.ui.weather.PlaceScreen
 import app.koyomi.ui.skin.skin
@@ -137,9 +145,16 @@ fun SettingsScreen(viewModel: SettingsViewModel = viewModel()) {
         Text("設定", color = colors.ink, fontSize = 28.sp, fontWeight = skin.strong, modifier = Modifier.padding(top = 28.dp, bottom = 4.dp))
 
         Section("テーマ", stringResource(R.string.settings_theme), colors) {
-            Choice("スタンダード", null, settings.skin == SkinId.STANDARD, colors) { viewModel.setSkin(SkinId.STANDARD) }
-            Choice("RPG", null, settings.skin == SkinId.JRPG, colors) { viewModel.setSkin(SkinId.JRPG) }
-            Choice("和風", null, settings.skin == SkinId.TRADITIONAL, colors) { viewModel.setSkin(SkinId.TRADITIONAL) }
+            for ((id, name, gloss) in listOf(
+                Triple(SkinId.STANDARD, "スタンダード", R.string.theme_standard),
+                Triple(SkinId.SAKURA, "桜", R.string.theme_sakura),
+                Triple(SkinId.AI, "藍", R.string.theme_ai),
+                Triple(SkinId.YAKEI, "夜景", R.string.theme_yakei),
+                Triple(SkinId.TRADITIONAL, "和風", R.string.theme_traditional),
+                Triple(SkinId.JRPG, "RPG", R.string.theme_rpg),
+            )) {
+                Choice(name, stringResource(gloss), settings.skin == id, colors, swatchesOf(id, settings.mode, settings.options)) { viewModel.setSkin(id) }
+            }
         }
 
         // Lo que se puede ajustar de un tema solo aparece con ese tema
@@ -245,7 +260,7 @@ private fun Section(title: String, gloss: String, colors: Palette, content: @Com
 }
 
 @Composable
-private fun Choice(label: String, example: String?, selected: Boolean, colors: Palette, onClick: () -> Unit) {
+private fun Choice(label: String, example: String?, selected: Boolean, colors: Palette, swatches: List<Color> = emptyList(), onClick: () -> Unit) {
     Row(
         Modifier
             .fillMaxWidth()
@@ -255,11 +270,22 @@ private fun Choice(label: String, example: String?, selected: Boolean, colors: P
         verticalAlignment = Alignment.CenterVertically,
     ) {
         skin().Mark(selected, null)
-        Column(Modifier.padding(start = 14.dp)) {
+        Column(Modifier.padding(start = 14.dp).weight(1f)) {
             Text(label, color = colors.ink, fontSize = 16.sp)
             if (example != null) Text(example, color = colors.inkSoft, fontSize = 13.sp)
         }
+        // Cómo es cada tema, de un vistazo: su fondo, su tarjeta, su acento y su tinta
+        for (swatch in swatches) {
+            Box(Modifier.padding(start = 4.dp).size(16.dp).clip(CircleShape).background(swatch).border(1.dp, colors.rule, CircleShape))
+        }
     }
+}
+
+/** Las cuatro muestras de un tema, en el modo que se esté usando. */
+@Composable
+private fun swatchesOf(id: SkinId, mode: ThemeMode, options: ThemeOptions): List<Color> {
+    val palette = skinOf(id).palette(isDark(mode), options)
+    return listOf(palette.background, palette.surface, palette.accent, palette.ink)
 }
 
 @Composable
