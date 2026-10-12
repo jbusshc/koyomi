@@ -145,7 +145,7 @@ open class SummaryWidget : AppWidgetProvider() {
                 val config = configs.getValue(id)
                 val bitmap = WidgetLook.bitmap(app, manager.getAppWidgetOptions(id), manager.getAppWidgetInfo(id))
                 val (data, snapshot) = renderSummary(app, bitmap, settings, config)
-                next = snapshot?.nextChangeMillis() ?: next
+                snapshot?.nextChangeMillis()?.let { next = if (next == 0L) it else minOf(next, it) }
                 val views = RemoteViews(app.packageName, R.layout.widget_date_image)
                 views.setImageViewBitmap(R.id.widget_image, bitmap)
                 views.setContentDescription(R.id.widget_image, describe(data))
@@ -156,8 +156,12 @@ open class SummaryWidget : AppWidgetProvider() {
                 manager.updateAppWidget(id, views)
             }
 
-            // Lo siguiente que cambia la lista de eventos. No despierta al teléfono
-            if (next > 0L) app.getSystemService(AlarmManager::class.java).set(AlarmManager.RTC, next, nextRefresh(app))
+            // Lo siguiente que cambia: un evento que termina o, como tarde, el cambio de día (también
+            // en los widgets que no enseñan eventos, o la fecha se quedaría en la de ayer). No
+            // despierta al teléfono
+            val midnight = java.time.LocalDate.now().plusDays(1).atStartOfDay(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli() + 2_000
+            next = if (next == 0L) midnight else minOf(next, midnight)
+            app.getSystemService(AlarmManager::class.java).set(AlarmManager.RTC, next, nextRefresh(app))
             WidgetJobs.watchCalendar(app)
             WidgetJobs.scheduleWeather(app, configs.values.map { it.refreshMinutes })
         }

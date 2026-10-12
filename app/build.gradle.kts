@@ -13,8 +13,8 @@ android {
         targetSdk = 36
         // Como en Tateyoko: versionCode sube en uno con cada APK que se entrega; versionName es
         // 0.MENOR.PARCHE. La 1.0.0 es la de Play.
-        versionCode = 19
-        versionName = "0.17.0"
+        versionCode = 20
+        versionName = "0.18.0"
         manifestPlaceholders["appLabel"] = "Koyomi"
     }
 

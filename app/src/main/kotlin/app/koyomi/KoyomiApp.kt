@@ -8,6 +8,7 @@ import app.koyomi.settings.SettingsStore
 import app.koyomi.widget.ClockWidget
 import app.koyomi.weather.WeatherRepository
 import app.koyomi.widget.WidgetConfigStore
+import app.koyomi.widget.WidgetPreviews
 import app.koyomi.widget.SummaryWidget
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -58,6 +59,10 @@ class KoyomiApp : Application() {
         // Los widgets siguen los ajustes (tema, modo, formatos, calendarios): al cambiarlos, se repintan
         appScope.launch {
             settings.settings.distinctUntilChanged().drop(1).collect { refreshWidgets() }
+        }
+        // Las vistas previas del selector de widgets (Android 15+): al arrancar y al cambiar los ajustes
+        appScope.launch {
+            settings.settings.distinctUntilChanged().collect { runCatching { WidgetPreviews.update(this@KoyomiApp) } }
         }
         // El tiempo: al elegir ciudad se pide el parte, y cuando llega se repinta su widget
         appScope.launch {

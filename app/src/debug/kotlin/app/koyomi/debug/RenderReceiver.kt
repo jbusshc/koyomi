@@ -15,6 +15,7 @@ import app.koyomi.settings.Settings
 import app.koyomi.ui.skin.skinOf
 import app.koyomi.ui.weather.WeatherIcons
 import app.koyomi.widget.WidgetLook
+import app.koyomi.widget.ClockWidget
 import app.koyomi.widget.WidgetBackground
 import app.koyomi.widget.WidgetConfig
 import app.koyomi.widget.WidgetLayout
@@ -62,6 +63,12 @@ class RenderReceiver : BroadcastReceiver() {
                     renderIcons(context, settings, density, File(context.filesDir, "${tag}.png"))
                     return@launch
                 }
+                if (kind == "clock") {
+                    val zone = intent.getStringExtra("zone")
+                    val config = WidgetConfig(zone = zone, showAlarm = intent.getBooleanExtra("alarm", false))
+                    for ((w, h) in sizes) renderClock(app, settings, config, w, h, density, File(context.filesDir, "${tag}_${w}x$h.png"))
+                    return@launch
+                }
                 for ((w, h) in sizes) {
                     val bitmap = Bitmap.createBitmap((w * density).roundToInt(), (h * density).roundToInt(), Bitmap.Config.ARGB_8888)
                     renderSummaryForDebug(app, bitmap, settings, config)
@@ -71,6 +78,23 @@ class RenderReceiver : BroadcastReceiver() {
                 pending.finish()
             }
         }
+    }
+
+    /** El reloj, inflado como lo haría el lanzador y dibujado en un PNG. */
+    private fun renderClock(app: KoyomiApp, settings: Settings, config: WidgetConfig, w: Int, h: Int, density: Float, target: File) {
+        val width = (w * density).roundToInt()
+        val height = (h * density).roundToInt()
+        val frame = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+        val views = ClockWidget.clockViews(app, settings, config, frame, h.toFloat(), java.time.ZonedDateTime.now())
+        val root = views.apply(app, android.widget.FrameLayout(app))
+        root.measure(
+            android.view.View.MeasureSpec.makeMeasureSpec(width, android.view.View.MeasureSpec.EXACTLY),
+            android.view.View.MeasureSpec.makeMeasureSpec(height, android.view.View.MeasureSpec.EXACTLY),
+        )
+        root.layout(0, 0, width, height)
+        val out = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+        root.draw(Canvas(out))
+        target.outputStream().use { out.compress(Bitmap.CompressFormat.PNG, 100, it) }
     }
 
     /** Una hoja con todos los iconos del tiempo del tema: los nueve cielos y las dos lunas. */

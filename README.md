@@ -22,7 +22,9 @@ las olas 青海波 y dorado), **夜景** (ciudad de noche en neón), **和風** 
 Cada tema decide también cómo se dibuja cada pieza (`KoyomiSkin`), no solo sus colores, y el día de
 la semana es siempre protagonista.
 
-Widgets: **Resumen** y **Reloj**. El Resumen se configura al ponerlo (y al volver a configurarlo):
+Widgets: **Resumen** y **Reloj**. El Reloj puede enseñar la hora de otra ciudad (con su diferencia) y
+la próxima alarma del teléfono. En Android 15 o más, el selector de widgets enseña vistas previas con
+tu tema y tus datos. El Resumen se configura al ponerlo (y al volver a configurarlo):
 
 - Contenido: automático (enseña más cuanto más grande es), solo la fecha, el tiempo, la agenda o el
   mes entero con sus eventos; y qué piezas mostrar (tiempo, tres días, eventos, mes, lecturas).

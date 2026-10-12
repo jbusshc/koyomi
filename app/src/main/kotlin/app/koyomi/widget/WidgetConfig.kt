@@ -31,10 +31,14 @@ data class WidgetConfig(
     val refreshMinutes: Int = DEFAULT_REFRESH_MINUTES,
     /** El botón ↻ en la esquina. */
     val showRefresh: Boolean = true,
+    /** El Reloj: otra ciudad, con su hora debajo (un id de zona, p. ej. «America/New_York»). */
+    val zone: String? = null,
+    /** El Reloj: la próxima alarma del teléfono. */
+    val showAlarm: Boolean = false,
 ) {
     fun encode(): String {
         val flags = listOf(showWeather, showForecast, showEvents, showMonth, showNotes).joinToString("") { if (it) "1" else "0" }
-        return listOf(layout.name, skin?.name.orEmpty(), mode?.name.orEmpty(), background.name, flags, refreshMinutes.toString(), if (showRefresh) "1" else "0").joinToString("|")
+        return listOf(layout.name, skin?.name.orEmpty(), mode?.name.orEmpty(), background.name, flags, refreshMinutes.toString(), if (showRefresh) "1" else "0", zone.orEmpty(), if (showAlarm) "1" else "0").joinToString("|")
     }
 
     companion object {
@@ -45,8 +49,8 @@ data class WidgetConfig(
 
         fun decode(value: String?): WidgetConfig {
             val parts = value?.split('|') ?: return WidgetConfig()
-            // Las configuraciones de antes de 0.17 tenían cinco partes
-            if (parts.size != 5 && parts.size != 7) return WidgetConfig()
+            // Las de antes de 0.17 tenían cinco partes, y las de antes de 0.18, siete
+            if (parts.size != 5 && parts.size != 7 && parts.size != 9) return WidgetConfig()
             val flags = parts[4].padEnd(5, '1')
             return WidgetConfig(
                 layout = WidgetLayout.entries.firstOrNull { it.name == parts[0] } ?: WidgetLayout.AUTO,
@@ -60,6 +64,8 @@ data class WidgetConfig(
                 showNotes = flags[4] == '1',
                 refreshMinutes = parts.getOrNull(5)?.toIntOrNull()?.takeIf { it in REFRESH_CHOICES } ?: DEFAULT_REFRESH_MINUTES,
                 showRefresh = parts.getOrNull(6) != "0",
+                zone = parts.getOrNull(7)?.takeIf { it.isNotBlank() },
+                showAlarm = parts.getOrNull(8) == "1",
             )
         }
     }

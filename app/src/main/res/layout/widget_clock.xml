@@ -59,5 +59,47 @@
             android:text="令和8年10月4日（日）"
             android:textColor="@color/widget_ink_soft"
             android:textSize="13sp" />
+
+        <!-- La hora de otra ciudad; ClockWidget la enseña solo si se pidió y cabe -->
+        <LinearLayout
+            android:id="@+id/widget_zone_row"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="3dp"
+            android:baselineAligned="true"
+            android:orientation="horizontal"
+            android:visibility="gone">
+
+            <TextView
+                android:id="@+id/widget_zone_label"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:includeFontPadding="false"
+                android:maxLines="1"
+                android:textColor="@color/widget_ink_soft"
+                android:textSize="12sp" />
+
+            <TextClock
+                android:id="@+id/widget_zone_clock"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:format12Hour="H時mm分"
+                android:format24Hour="H時mm分"
+                android:includeFontPadding="false"
+                android:textColor="@color/widget_ink"
+                android:textSize="15sp" />
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/widget_alarm"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:includeFontPadding="false"
+            android:maxLines="1"
+            android:textColor="@color/widget_ink_soft"
+            android:textSize="12sp"
+            android:visibility="gone" />
     </LinearLayout>
 </FrameLayout>

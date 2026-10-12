@@ -93,4 +93,7 @@
     <string name="wc_refresh_720">Every 12 hours</string>
     <string name="wc_refresh_button">Show the ↻ button in the corner</string>
     <string name="no_events">No events</string>
+    <string name="wc_zone">A second clock</string>
+    <string name="wc_zone_none">No second clock</string>
+    <string name="wc_alarm">Show the next alarm</string>
 </resources>

@@ -137,8 +137,8 @@ private fun ConfigScreen(
         val height = (previewHeightDp * density).roundToInt().coerceAtLeast(1)
         val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
         if (isClock) {
-            val look = WidgetLook.of(app, settings, config)
-            look.frame(android.graphics.Canvas(bitmap), density)
+            // El reloj no se pinta en una imagen: aquí solo se ve su marco y sus colores
+            WidgetLook.of(app, settings, config).frame(android.graphics.Canvas(bitmap), density)
         } else {
             renderSummary(app, bitmap, settings, config)
         }
@@ -196,6 +196,17 @@ private fun ConfigScreen(
                         OptionChoice(label, stringResource(gloss), config.refreshMinutes == minutes, colors) { onChange(config.copy(refreshMinutes = minutes)) }
                     }
                     OptionChoice("↻", stringResource(R.string.wc_refresh_button), config.showRefresh, colors) { onChange(config.copy(showRefresh = !config.showRefresh)) }
+                }
+                Box(Modifier.height(12.dp))
+            }
+
+            if (isClock) {
+                OptionSection("世界時計", stringResource(R.string.wc_zone), colors) {
+                    OptionChoice("なし", stringResource(R.string.wc_zone_none), config.zone == null, colors) { onChange(config.copy(zone = null)) }
+                    for ((id, name) in ClockZones.choices) {
+                        OptionChoice(name, id.substringAfterLast('/').replace('_', ' '), config.zone == id, colors) { onChange(config.copy(zone = id)) }
+                    }
+                    OptionChoice("⏰", stringResource(R.string.wc_alarm), config.showAlarm, colors) { onChange(config.copy(showAlarm = !config.showAlarm)) }
                 }
                 Box(Modifier.height(12.dp))
             }
