@@ -1,6 +1,7 @@
 package app.koyomi.widget
 
 import android.appwidget.AppWidgetManager
+import android.appwidget.AppWidgetProviderInfo
 import android.content.Context
 import android.content.res.Configuration
 import android.graphics.Bitmap
@@ -215,11 +216,19 @@ class WidgetLook(
         )
 
         /** Una imagen del tamaño exacto del widget, en píxeles de pantalla. */
-        fun bitmap(context: Context, options: Bundle, fallbackWidthDp: Int, fallbackHeightDp: Int): Bitmap {
+        fun bitmap(context: Context, options: Bundle, info: AppWidgetProviderInfo?): Bitmap {
             val density = context.resources.displayMetrics.density
-            // En vertical el widget mide el ancho mínimo y el alto máximo que da el lanzador
-            val widthDp = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH).takeIf { it > 0 } ?: fallbackWidthDp
-            val heightDp = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT).takeIf { it > 0 } ?: fallbackHeightDp
+            // Al ponerlo, el lanzador puede no haber dicho aún cuánto mide: se parte de la medida con
+            // que el widget se ofrece (y no de una inventada, que lo dibujaría más grande de lo que es)
+            val fallbackWidthDp = info?.let { (it.minWidth / density).roundToInt() } ?: 110
+            val fallbackHeightDp = info?.let { (it.minHeight / density).roundToInt() } ?: 110
+            val landscape = context.resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
+            // En vertical el widget mide el ancho mínimo y el alto máximo que da el lanzador; en
+            // horizontal, al revés
+            val widthKey = if (landscape) AppWidgetManager.OPTION_APPWIDGET_MAX_WIDTH else AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH
+            val heightKey = if (landscape) AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT else AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT
+            val widthDp = options.getInt(widthKey).takeIf { it > 0 } ?: fallbackWidthDp
+            val heightDp = options.getInt(heightKey).takeIf { it > 0 } ?: fallbackHeightDp
             // Nunca más grande que la pantalla: el sistema rechaza imágenes de widget que pesan demasiado
             val screen = context.resources.displayMetrics
             val width = (widthDp * density).roundToInt().coerceIn(1, screen.widthPixels)

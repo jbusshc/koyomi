@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- El Resumen en 4×4: el mismo widget, que se puede achicar -->
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:configure="app.koyomi.widget.WidgetConfigActivity"
+    android:widgetFeatures="reconfigurable"
+    android:description="@string/widget_summary_description"
+    android:initialLayout="@layout/widget_summary_preview"
+    android:minWidth="110dp"
+    android:minHeight="250dp"
+    android:minResizeWidth="110dp"
+    android:minResizeHeight="40dp"
+    android:previewLayout="@layout/widget_summary_preview"
+    android:resizeMode="horizontal|vertical"
+    android:targetCellWidth="4"
+    android:targetCellHeight="4"
+    android:updatePeriodMillis="21600000"
+    android:widgetCategory="home_screen" />

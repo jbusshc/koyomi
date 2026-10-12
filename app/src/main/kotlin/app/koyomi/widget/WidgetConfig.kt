@@ -27,16 +27,26 @@ data class WidgetConfig(
     val showEvents: Boolean = true,
     val showMonth: Boolean = true,
     val showNotes: Boolean = true,
+    /** Cada cuántos minutos se pide el tiempo y se repinta. 0: solo a mano (↻) o al abrir la app. */
+    val refreshMinutes: Int = DEFAULT_REFRESH_MINUTES,
+    /** El botón ↻ en la esquina. */
+    val showRefresh: Boolean = true,
 ) {
     fun encode(): String {
         val flags = listOf(showWeather, showForecast, showEvents, showMonth, showNotes).joinToString("") { if (it) "1" else "0" }
-        return listOf(layout.name, skin?.name.orEmpty(), mode?.name.orEmpty(), background.name, flags).joinToString("|")
+        return listOf(layout.name, skin?.name.orEmpty(), mode?.name.orEmpty(), background.name, flags, refreshMinutes.toString(), if (showRefresh) "1" else "0").joinToString("|")
     }
 
     companion object {
+        const val DEFAULT_REFRESH_MINUTES = 180
+
+        /** Las frecuencias que se ofrecen, en minutos; 0 es «a mano». */
+        val REFRESH_CHOICES = listOf(30, 60, 180, 360, 720, 0)
+
         fun decode(value: String?): WidgetConfig {
             val parts = value?.split('|') ?: return WidgetConfig()
-            if (parts.size != 5) return WidgetConfig()
+            // Las configuraciones de antes de 0.17 tenían cinco partes
+            if (parts.size != 5 && parts.size != 7) return WidgetConfig()
             val flags = parts[4].padEnd(5, '1')
             return WidgetConfig(
                 layout = WidgetLayout.entries.firstOrNull { it.name == parts[0] } ?: WidgetLayout.AUTO,
@@ -48,6 +58,8 @@ data class WidgetConfig(
                 showEvents = flags[2] == '1',
                 showMonth = flags[3] == '1',
                 showNotes = flags[4] == '1',
+                refreshMinutes = parts.getOrNull(5)?.toIntOrNull()?.takeIf { it in REFRESH_CHOICES } ?: DEFAULT_REFRESH_MINUTES,
+                showRefresh = parts.getOrNull(6) != "0",
             )
         }
     }

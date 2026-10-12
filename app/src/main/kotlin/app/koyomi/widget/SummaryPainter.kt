@@ -17,7 +17,9 @@ import app.koyomi.engine.holiday.Shukujitsu
 import app.koyomi.engine.weather.Sky
 import app.koyomi.engine.weather.Tenki
 import app.koyomi.settings.Place
+import app.koyomi.settings.FrameWeight
 import app.koyomi.settings.SkinId
+import app.koyomi.ui.skin.PixelFrame
 import app.koyomi.ui.skin.AiSkin
 import app.koyomi.ui.skin.YakeiSkin
 import java.time.LocalDate
@@ -46,6 +48,8 @@ internal class SummaryData(
     val weekStart: Youbi,
     /** Los días del mes con algún evento, para el calendario grande. Vacío si no se pidió. */
     val busyDays: Set<LocalDate> = emptySet(),
+    /** «11月3日　文化の日（あと23日）», o nulo. */
+    val nextHoliday: String? = null,
 )
 
 /**
@@ -84,6 +88,11 @@ internal class SummaryPainter(
         val top = inset
         val width = bitmap.width / density - 2 * inset
         val height = bitmap.height / density - 2 * inset
+        paintBody(left, top, width, height)
+        if (config.showRefresh && config.layout != WidgetLayout.DATE) refreshGlyph(bitmap.width / density, inset)
+    }
+
+    private fun paintBody(left: Float, top: Float, width: Float, height: Float) {
         when {
             config.layout == WidgetLayout.DATE -> dateLayout(left, top, width, height)
             config.layout == WidgetLayout.MONTH -> if (height >= MONTH_LAYOUT_MIN_HEIGHT) monthLayout(left, top, width, height) else weekStrip(left, top, width, height)
@@ -222,6 +231,32 @@ internal class SummaryPainter(
         return maxOf(iconSize, lines)
     }
 
+    /**
+     * ↻ en la esquina de arriba a la derecha, dentro del margen del marco: pequeño y discreto. El
+     * toque es de un área mayor que pone el widget (R.id.widget_refresh).
+     */
+    private fun refreshGlyph(widthDp: Float, inset: Float) {
+        val radius = 4.5f
+        // Dentro del margen que deja el marco, entre su borde y el contenido
+        val offset = maxOf(inset - 5.5f, radius + 2f)
+        val cx = widthDp - offset
+        val cy = offset
+        shape.style = Paint.Style.STROKE
+        shape.strokeWidth = 1.5f * density
+        shape.strokeCap = Paint.Cap.ROUND
+        shape.color = colors.inkSoft.copy(alpha = 0.9f).toArgb()
+        val oval = android.graphics.RectF((cx - radius) * density, (cy - radius) * density, (cx + radius) * density, (cy + radius) * density)
+        canvas.drawArc(oval, 20f, 290f, false, shape)
+        // La punta de la flecha, en el extremo del arco
+        val tipX = cx + radius * kotlin.math.cos(Math.toRadians(20.0)).toFloat()
+        val tipY = cy + radius * kotlin.math.sin(Math.toRadians(20.0)).toFloat()
+        val arrow = 4.2f
+        canvas.drawLine(tipX * density, tipY * density, (tipX + arrow) * density, (tipY - arrow * 0.3f) * density, shape)
+        canvas.drawLine(tipX * density, tipY * density, (tipX - arrow * 0.2f) * density, (tipY - arrow) * density, shape)
+        shape.style = Paint.Style.FILL
+        shape.strokeCap = Paint.Cap.BUTT
+    }
+
     /** El día de la semana, en un sello a la izquierda y la fecha al lado. Para una fila baja. */
     private fun dateBlock(x: Float, y: Float, w: Float) {
         val date = data.date
@@ -289,9 +324,17 @@ internal class SummaryPainter(
 
         when (look.skin) {
             SkinId.JRPG -> {
-                shape.color = tone.toArgb()
-                canvas.drawRect(l, t, r, b, shape)
-                ink = colors.surface
+                // Una ventana pequeña, como la del resto del tema, con el kanji dentro: un bloque
+                // lleno de color desentonaba con ellas
+                val line = PixelFrame.border(FrameWeight.THIN, density)
+                for (rect in PixelFrame.rects(r - l, b - t, line)) {
+                    shape.color = when (rect.role) {
+                        PixelFrame.Role.FRAME -> colors.frame
+                        PixelFrame.Role.SURFACE -> colors.surface
+                        PixelFrame.Role.HAIRLINE -> colors.frame.copy(alpha = 0.3f)
+                    }.toArgb()
+                    canvas.drawRect(l + rect.x, t + rect.y, l + rect.x + rect.w, t + rect.y + rect.h, shape)
+                }
             }
             SkinId.TRADITIONAL -> {
                 // El sello bermellón; en sábado y domingo, con el color del día
@@ -378,18 +421,21 @@ internal class SummaryPainter(
 
     /** El próximo evento, en dos líneas: la hora y el título. Para una fila baja. */
     private fun nextEvent(x: Float, y: Float, w: Float) {
+        val first = data.rows.firstOrNull()
+        // Con lo de hoy vacío, el primer evento es de otro día: el día va delante de la hora
+        val dayLabel = (data.rows.firstOrNull { it is Row.Label } as? Row.Label)?.takeIf { first is Row.Note }
         val event = data.rows.filterIsInstance<Row.Event>().firstOrNull()
-        val note = data.rows.filterIsInstance<Row.Note>().firstOrNull()
         when {
             event != null -> {
                 val dot = 6f
                 shape.color = event.color.toArgb()
                 dotAt(x, y + 4f, dot)
-                write(event.time, x + dot + 6f, y + 12f, 12f, colors.inkSoft, maxWidth = w - dot - 6f)
+                val head = if (dayLabel != null) "${dayLabel.text}　${event.time}" else event.time
+                write(head, x + dot + 6f, y + 12f, 12f, colors.inkSoft, maxWidth = w - dot - 6f)
                 write(event.title, x, y + 32f, 14f, colors.ink, maxWidth = w)
             }
-            note != null -> write(note.text, x, y + 22f, 13f, colors.inkSoft, maxWidth = w)
-            else -> write("予定なし", x, y + 22f, 13f, colors.inkSoft)
+            first is Row.Note -> write(first.text, x, y + 22f, 13f, colors.inkSoft, maxWidth = w)
+            else -> write("今日は予定なし", x, y + 22f, 13f, colors.inkSoft, maxWidth = w)
         }
     }
 
@@ -506,7 +552,7 @@ internal class SummaryPainter(
         val date = data.date
         val holiday = data.holiday
         val year = if (data.dateStyle != DateStyle.SIMPLE) date.year else null
-        val lines = if (config.showNotes) listOfNotNull(data.reading, data.note) else emptyList()
+        val lines = if (config.showNotes) listOfNotNull(data.reading, data.note, data.nextHoliday) else emptyList()
         if (w >= h * 1.5f) {
             val size = minOf(h - 4f, w * 0.27f, 120f)
             weekdayBadge(x, y + (h - size) / 2, size)
@@ -543,19 +589,19 @@ internal class SummaryPainter(
             var top = y + ((h - total) / 2).coerceAtLeast(0f)
             weekdayBadge(x + (w - size) / 2, top, size)
             top += size + 12f + daySp * 0.9f
-            write(date.monthDay, x + (w - measure(date.monthDay, daySp)) / 2, top, daySp, colors.ink, maxWidth = w)
+            writeCentred(date.monthDay, x, w, top, daySp, colors.ink)
             if (year != null) {
                 top += 18f
-                write(year, x + (w - measure(year, 13f)) / 2, top, 13f, colors.inkSoft, maxWidth = w)
+                writeCentred(year, x, w, top, 13f, colors.inkSoft)
             }
             if (holiday != null) {
                 top += 20f
-                write(holiday, x + (w - measure(holiday, 14f)) / 2, top, 14f, colors.sunday, maxWidth = w)
+                writeCentred(holiday, x, w, top, 14f, colors.sunday)
             }
             for (line in lines) {
                 top += 17f
                 if (top > y + h) break
-                write(line, x + (w - measure(line, 12f)) / 2, top, 12f, colors.inkSoft, maxWidth = w)
+                writeCentred(line, x, w, top, 12f, colors.inkSoft)
             }
         }
     }
@@ -624,6 +670,12 @@ internal class SummaryPainter(
     private fun fitSp(value: String, max: Float, min: Float, width: Float): Float {
         val needed = measure(value, max)
         return if (needed <= width) max else (max * width / needed).coerceAtLeast(min)
+    }
+
+    /** Escribe [value] centrado en [x]..[x]+[w], sin pasarse de los bordes. */
+    private fun writeCentred(value: String, x: Float, w: Float, baseline: Float, sp: Float, color: Color) {
+        val shown = minOf(measure(value, sp), w)
+        write(value, x + (w - shown) / 2, baseline, sp, color, maxWidth = w)
     }
 
     private fun measure(value: String, sp: Float): Float {

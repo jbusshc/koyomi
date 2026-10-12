@@ -189,6 +189,17 @@ private fun ConfigScreen(
                 Box(Modifier.height(12.dp))
             }
 
+            if (!isClock) {
+                OptionSection("更新", stringResource(R.string.wc_refresh), colors) {
+                    for (minutes in WidgetConfig.REFRESH_CHOICES) {
+                        val (label, gloss) = refreshLabel(minutes)
+                        OptionChoice(label, stringResource(gloss), config.refreshMinutes == minutes, colors) { onChange(config.copy(refreshMinutes = minutes)) }
+                    }
+                    OptionChoice("↻", stringResource(R.string.wc_refresh_button), config.showRefresh, colors) { onChange(config.copy(showRefresh = !config.showRefresh)) }
+                }
+                Box(Modifier.height(12.dp))
+            }
+
             OptionSection("テーマ", stringResource(R.string.wc_theme), colors) {
                 OptionChoice("アプリに合わせる", stringResource(R.string.wc_same_as_app), config.skin == null, colors) { onChange(config.copy(skin = null)) }
                 val shownMode = config.mode ?: settings.mode
@@ -232,6 +243,16 @@ private fun ConfigScreen(
             Text(stringResource(R.string.wc_save), color = colors.background, fontSize = 16.sp, fontWeight = skin.strong)
         }
     }
+}
+
+/** El nombre en japonés y la glosa de cada frecuencia de actualización. */
+private fun refreshLabel(minutes: Int): Pair<String, Int> = when (minutes) {
+    0 -> "手動" to R.string.wc_refresh_manual
+    30 -> "30分ごと" to R.string.wc_refresh_30
+    60 -> "1時間ごと" to R.string.wc_refresh_60
+    180 -> "3時間ごと" to R.string.wc_refresh_180
+    360 -> "6時間ごと" to R.string.wc_refresh_360
+    else -> "12時間ごと" to R.string.wc_refresh_720
 }
 
 private class Toggle(val label: String, val gloss: Int, val value: (WidgetConfig) -> Boolean, val set: (WidgetConfig, Boolean) -> WidgetConfig)

@@ -21,9 +21,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import app.koyomi.R
 import app.koyomi.calendar.CalendarInstance
 import app.koyomi.calendar.DayEvent
 import app.koyomi.engine.format.JaTime
@@ -42,7 +44,11 @@ import java.time.ZoneId
 @Composable
 fun DayEvents(events: List<DayEvent>, timeStyle: TimeStyle, colors: Palette, onOpen: (CalendarInstance) -> Unit) {
     if (events.isEmpty()) {
-        Text("予定なし", color = colors.inkSoft, fontSize = 16.sp, modifier = Modifier.padding(vertical = 12.dp))
+        // 予定なし: «sin planes». Con su glosa, para quien aún no lo lee de corrido
+        Column(Modifier.padding(vertical = 12.dp)) {
+            Text("予定なし", color = colors.inkSoft, fontSize = 16.sp)
+            Text(stringResource(R.string.no_events), color = colors.inkSoft.copy(alpha = 0.75f), fontSize = 12.sp)
+        }
     } else {
         Column { events.forEach { EventRow(it, timeStyle, colors, onOpen) } }
     }

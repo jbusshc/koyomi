@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Para los temas que no se pueden pintar con las vistas de un widget: DateWidget dibuja la imagen -->
+<!-- El Resumen se dibuja entero en una imagen, con la fuente y el marco del tema -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/widget_root"
@@ -12,4 +12,12 @@
         android:layout_height="match_parent"
         android:scaleType="center"
         tools:ignore="ContentDescription" />
+
+    <!-- El toque de ↻: una esquina de 44dp sin dibujo propio; el icono va en la imagen -->
+    <FrameLayout
+        android:id="@+id/widget_refresh"
+        android:layout_width="44dp"
+        android:layout_height="44dp"
+        android:layout_gravity="top|end"
+        android:contentDescription="@string/widget_refresh" />
 </FrameLayout>

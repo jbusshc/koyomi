@@ -81,4 +81,16 @@
     <string name="wc_bg_glass">Glass: you can see through it a little</string>
     <string name="wc_bg_clear">None: text over your wallpaper</string>
     <string name="wc_save">Save</string>
+    <string name="widget_summary_compact_name">Summary · small (2×2)</string>
+    <string name="widget_summary_large_name">Summary · large (4×4)</string>
+    <string name="widget_refresh">Refresh</string>
+    <string name="wc_refresh">Update</string>
+    <string name="wc_refresh_manual">Only when I tap ↻ or open the app</string>
+    <string name="wc_refresh_30">Every 30 minutes</string>
+    <string name="wc_refresh_60">Every hour</string>
+    <string name="wc_refresh_180">Every 3 hours</string>
+    <string name="wc_refresh_360">Every 6 hours</string>
+    <string name="wc_refresh_720">Every 12 hours</string>
+    <string name="wc_refresh_button">Show the ↻ button in the corner</string>
+    <string name="no_events">No events</string>
 </resources>

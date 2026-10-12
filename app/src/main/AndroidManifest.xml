@@ -46,6 +46,33 @@
                 android:resource="@xml/summary_widget_info" />
         </receiver>
 
+        <!-- El mismo Resumen, ofrecido también en 2×2 y en 4×4 para que el selector lo ponga de su tamaño -->
+        <receiver
+            android:name=".widget.SummaryCompactWidget"
+            android:exported="true"
+            android:label="@string/widget_summary_compact_name">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="android.intent.action.TIME_SET" />
+                <action android:name="android.intent.action.TIMEZONE_CHANGED" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/summary_compact_widget_info" />
+        </receiver>
+        <receiver
+            android:name=".widget.SummaryLargeWidget"
+            android:exported="true"
+            android:label="@string/widget_summary_large_name">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="android.intent.action.TIME_SET" />
+                <action android:name="android.intent.action.TIMEZONE_CHANGED" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/summary_large_widget_info" />
+        </receiver>
         <service
             android:name=".widget.SummaryWidget$CalendarChanged"
             android:exported="false"

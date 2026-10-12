@@ -79,4 +79,16 @@
     <string name="wc_bg_glass">Cristal: se ve un poco a través</string>
     <string name="wc_bg_clear">Ninguno: el texto sobre tu fondo de pantalla</string>
     <string name="wc_save">Guardar</string>
+    <string name="widget_summary_compact_name">Resumen · pequeño (2×2)</string>
+    <string name="widget_summary_large_name">Resumen · grande (4×4)</string>
+    <string name="widget_refresh">Actualizar</string>
+    <string name="wc_refresh">Actualización</string>
+    <string name="wc_refresh_manual">Solo al tocar ↻ o al abrir la app</string>
+    <string name="wc_refresh_30">Cada 30 minutos</string>
+    <string name="wc_refresh_60">Cada hora</string>
+    <string name="wc_refresh_180">Cada 3 horas</string>
+    <string name="wc_refresh_360">Cada 6 horas</string>
+    <string name="wc_refresh_720">Cada 12 horas</string>
+    <string name="wc_refresh_button">Mostrar el botón ↻ en la esquina</string>
+    <string name="no_events">Sin eventos</string>
 </resources>

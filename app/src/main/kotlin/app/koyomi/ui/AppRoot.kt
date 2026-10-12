@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
@@ -78,6 +79,13 @@ enum class Destination(val label: String, val gloss: Int) {
 fun AppRoot() {
     val app = LocalContext.current.applicationContext as KoyomiApp
     var current by rememberSaveable { mutableStateOf(Destination.TODAY) }
+
+    // Un widget puede pedir abrir en otra pantalla (el del mes abre el mes)
+    val requested by app.requestedDestination.collectAsStateWithLifecycle()
+    LaunchedEffect(requested) {
+        Destination.entries.firstOrNull { it.name == requested }?.let { current = it }
+        app.requestedDestination.value = null
+    }
 
     LifecycleResumeEffect(Unit) {
         app.onResume()

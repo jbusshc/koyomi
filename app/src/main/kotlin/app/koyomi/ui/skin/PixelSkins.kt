@@ -35,6 +35,7 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import app.koyomi.settings.FrameWeight
 import app.koyomi.settings.RpgWindow
 import app.koyomi.settings.ThemeOptions
 import androidx.compose.ui.graphics.RectangleShape
@@ -111,12 +112,13 @@ abstract class PixelSkin : KoyomiSkin {
                     maxLines = 1,
                     modifier = Modifier.weight(1f),
                 )
-                // El día de la semana, como la opción marcada de un menú: letra oscura sobre su color
+                // El día de la semana, en su propia ventana pequeña, como las del resto del tema (un
+                // bloque lleno de color desentonaba), y con su color si es domingo, sábado o festivo
                 Box(
-                    Modifier.size(52.dp).background(if (shown >= main.length) youbiColor else Color.Transparent),
+                    Modifier.size(56.dp).window(colors, FrameWeight.THIN),
                     contentAlignment = Alignment.Center,
                 ) {
-                    Text(date.youbi.short, color = if (shown >= main.length) colors.surface else Color.Transparent, fontSize = 34.sp)
+                    Text(date.youbi.short, color = if (shown >= main.length) youbiColor else Color.Transparent, fontSize = 34.sp)
                 }
             }
             date.secondLine(style)?.let { Text(it, color = colors.inkSoft, fontSize = 14.sp) }
@@ -175,8 +177,7 @@ abstract class PixelSkin : KoyomiSkin {
 
     /** El marco de la ventana, con el grosor que haya elegido el usuario. */
     @Composable
-    private fun Modifier.window(colors: Palette): Modifier {
-        val weight = LocalThemeOptions.current.rpgFrame
+    private fun Modifier.window(colors: Palette, weight: FrameWeight = LocalThemeOptions.current.rpgFrame): Modifier {
         return drawBehind {
             val t = PixelFrame.border(weight, density)
             for (rect in PixelFrame.rects(size.width, size.height, t)) {

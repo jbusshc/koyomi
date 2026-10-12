@@ -26,7 +26,12 @@ Widgets: **Resumen** y **Reloj**. El Resumen se configura al ponerlo (y al volve
 
 - Contenido: automático (enseña más cuanto más grande es), solo la fecha, el tiempo, la agenda o el
   mes entero con sus eventos; y qué piezas mostrar (tiempo, tres días, eventos, mes, lecturas).
+- Actualización: cada 30 minutos, 1, 3, 6 o 12 horas, o solo a mano; un botón ↻ en la esquina pide
+  el tiempo al instante. Sin eventos hoy, la lista sigue con los próximos días.
 - Aspecto: tema y modo propios o los de la app, y fondo pleno, de cristal o sin fondo.
+
+El Resumen se ofrece en tres tamaños de salida (2×2, 4×2 y 4×4): son el mismo widget y se pueden
+redimensionar después. El del mes abre la app en el mes.
 
 ## Estructura
 

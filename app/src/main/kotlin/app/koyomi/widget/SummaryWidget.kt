@@ -11,6 +11,7 @@ import android.app.job.JobParameters
 import android.app.job.JobService
 import android.graphics.Bitmap
 import android.os.Bundle
+import android.view.View
 import android.widget.RemoteViews
 import app.koyomi.KoyomiApp
 import app.koyomi.R
@@ -22,6 +23,7 @@ import app.koyomi.engine.reading.JaReading
 import app.koyomi.settings.LearnMode
 import app.koyomi.settings.Settings
 import app.koyomi.settings.SkinId
+import app.koyomi.ui.Destination
 import app.koyomi.ui.components.rekichu
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -30,15 +32,18 @@ import java.time.ZonedDateTime
 /**
  * Todo en uno, y más cuanto más grande es. Pegado a la pantalla de inicio en un hueco pequeño
  * enseña solo el tiempo; al crecer suma la fecha, luego la máxima y la mínima y el próximo evento,
- * y en los tamaños altos, los tres días del parte y la lista de lo que queda de hoy.
+ * y en los tamaños altos, los tres días del parte y la lista de lo que viene.
  *
- * Sigue el tema y el modo de la app y se dibuja en una imagen, con su fuente y su marco. Se pone al
- * día cuando cambia el calendario, cuando termina un evento, cuando llega un parte nuevo y al
- * volver de la app.
+ * Sigue el tema y el modo de la app (o los que se elijan para cada widget) y se dibuja en una
+ * imagen, con su fuente y su marco. Se pone al día cuando cambia el calendario, cuando termina un
+ * evento, cuando llega un parte nuevo, al volver de la app, al tocar su botón ↻ y cada cierto
+ * tiempo, el que se elija.
+ *
+ * Es abierta porque el selector de widgets ofrece tres tamaños de salida (2×2, 4×2 y 4×4) que son
+ * el mismo widget con otra medida inicial.
  */
-class SummaryWidget : AppWidgetProvider() {
+open class SummaryWidget : AppWidgetProvider() {
     override fun onUpdate(context: Context, manager: AppWidgetManager, ids: IntArray) {
-        WidgetJobs.scheduleWeather(context)
         render(context, goAsync(), fetch = true)
     }
 
@@ -47,6 +52,7 @@ class SummaryWidget : AppWidgetProvider() {
 
     override fun onReceive(context: Context, intent: Intent) {
         when (intent.action) {
+            ACTION_FETCH -> render(context, goAsync(), fetch = true, force = true)
             ACTION_REFRESH, Intent.ACTION_TIME_CHANGED, Intent.ACTION_TIMEZONE_CHANGED -> render(context, goAsync())
             else -> super.onReceive(context, intent)
         }
@@ -58,15 +64,17 @@ class SummaryWidget : AppWidgetProvider() {
     }
 
     override fun onDisabled(context: Context) {
+        // Este proveedor se quedó sin widgets, pero puede haber de los otros tamaños
+        if (hasWidgets(context)) return
         context.getSystemService(AlarmManager::class.java).cancel(nextRefresh(context))
         WidgetJobs.release(context)
     }
 
-    private fun render(context: Context, pending: PendingResult?, fetch: Boolean = false) {
+    private fun render(context: Context, pending: PendingResult?, fetch: Boolean = false, force: Boolean = false) {
         val app = context.applicationContext as KoyomiApp
         app.appScope.launch {
             try {
-                draw(app, fetch)
+                draw(app, fetch, force)
             } finally {
                 pending?.finish()
             }
@@ -83,13 +91,13 @@ class SummaryWidget : AppWidgetProvider() {
         override fun onStopJob(params: JobParameters): Boolean = false
     }
 
-    /** El trabajo periódico del tiempo: pide el parte y repinta los widgets. */
+    /** El trabajo periódico: pide el parte y repinta los widgets. */
     class WeatherRefresh : JobService() {
         override fun onStartJob(params: JobParameters): Boolean {
             val app = applicationContext as KoyomiApp
             app.appScope.launch {
                 runCatching {
-                    app.weather.refresh(app.settings.settings.first().weather)
+                    app.weather.refresh(app.settings.settings.first().weather, force = true)
                     SummaryWidget.refresh(app)
                 }
                 jobFinished(params, false)
@@ -103,39 +111,55 @@ class SummaryWidget : AppWidgetProvider() {
     companion object {
         private const val ACTION_REFRESH = "app.koyomi.SUMMARY_REFRESH"
 
+        /** El botón ↻: pide el parte ahora, sea cual sea su edad, y repinta. */
+        private const val ACTION_FETCH = "app.koyomi.SUMMARY_FETCH"
+
+        private val providers = listOf(SummaryWidget::class.java, SummaryCompactWidget::class.java, SummaryLargeWidget::class.java)
+
         fun hasWidgets(context: Context): Boolean = ids(context).isNotEmpty()
 
         fun refresh(context: Context) {
             val app = context.applicationContext as KoyomiApp
             if (ids(app).isEmpty()) return
-            app.appScope.launch { runCatching { draw(app, fetch = false) } }
+            app.appScope.launch { runCatching { draw(app, fetch = false, force = false) } }
         }
 
-        private fun ids(context: Context): IntArray =
-            AppWidgetManager.getInstance(context).getAppWidgetIds(ComponentName(context, SummaryWidget::class.java))
+        /** Los widgets puestos, de los tres tamaños de salida. */
+        internal fun ids(context: Context): IntArray {
+            val manager = AppWidgetManager.getInstance(context)
+            return providers.flatMap { manager.getAppWidgetIds(ComponentName(context, it)).toList() }.toIntArray()
+        }
 
-        private suspend fun draw(app: KoyomiApp, fetch: Boolean) {
+        private suspend fun draw(app: KoyomiApp, fetch: Boolean, force: Boolean) {
             val ids = ids(app)
             if (ids.isEmpty()) return
             val settings = app.settings.settings.first()
-            if (fetch) app.weather.refresh(settings.weather)
+            val configs = ids.associateWith { app.widgets.get(it) }
+            // Con todos en «a mano», el tiempo solo se pide al tocar ↻ o al abrir la app
+            val automatic = configs.values.any { it.refreshMinutes > 0 }
+            if (fetch && (automatic || force)) app.weather.refresh(settings.weather, force = force)
 
             val manager = AppWidgetManager.getInstance(app)
             var next = 0L
             for (id in ids) {
-                val bitmap = WidgetLook.bitmap(app, manager.getAppWidgetOptions(id), fallbackWidthDp = 300, fallbackHeightDp = 200)
-                val (data, snapshot) = renderSummary(app, bitmap, settings, app.widgets.get(id))
+                val config = configs.getValue(id)
+                val bitmap = WidgetLook.bitmap(app, manager.getAppWidgetOptions(id), manager.getAppWidgetInfo(id))
+                val (data, snapshot) = renderSummary(app, bitmap, settings, config)
                 next = snapshot?.nextChangeMillis() ?: next
                 val views = RemoteViews(app.packageName, R.layout.widget_date_image)
                 views.setImageViewBitmap(R.id.widget_image, bitmap)
                 views.setContentDescription(R.id.widget_image, describe(data))
-                views.setOnClickPendingIntent(R.id.widget_root, openApp(app))
+                views.setOnClickPendingIntent(R.id.widget_root, openApp(app, if (config.layout == WidgetLayout.MONTH) Destination.MONTH else null))
+                // El botón ↻ es una esquina que no se ve, bajo el dibujo del icono
+                views.setViewVisibility(R.id.widget_refresh, if (config.showRefresh && config.layout != WidgetLayout.DATE) View.VISIBLE else View.GONE)
+                views.setOnClickPendingIntent(R.id.widget_refresh, fetchNow(app))
                 manager.updateAppWidget(id, views)
             }
 
             // Lo siguiente que cambia la lista de eventos. No despierta al teléfono
             if (next > 0L) app.getSystemService(AlarmManager::class.java).set(AlarmManager.RTC, next, nextRefresh(app))
             WidgetJobs.watchCalendar(app)
+            WidgetJobs.scheduleWeather(app, configs.values.map { it.refreshMinutes })
         }
 
         private fun describe(data: SummaryData): String = buildString {
@@ -160,8 +184,21 @@ class SummaryWidget : AppWidgetProvider() {
             Intent(context, SummaryWidget::class.java).setAction(ACTION_REFRESH),
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
         )
+
+        private fun fetchNow(context: Context): PendingIntent = PendingIntent.getBroadcast(
+            context,
+            6,
+            Intent(context, SummaryWidget::class.java).setAction(ACTION_FETCH),
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+        )
     }
 }
+
+/** El mismo Resumen, que el selector de widgets ofrece en 2×2. */
+class SummaryCompactWidget : SummaryWidget()
+
+/** El mismo Resumen, que el selector de widgets ofrece en 4×4. */
+class SummaryLargeWidget : SummaryWidget()
 
 /**
  * Reúne lo que enseña un widget con la configuración [config] y lo pinta en [bitmap]. Devuelve los
@@ -196,6 +233,7 @@ internal suspend fun renderSummary(
         noPlaceHint = app.getString(R.string.widget_weather_no_place),
         weekStart = settings.weekStart,
         busyDays = busy,
+        nextHoliday = nextHoliday(today),
     )
     SummaryPainter(bitmap, look, app.resources.displayMetrics.density, data, sections, config).paint()
     return data to snapshot

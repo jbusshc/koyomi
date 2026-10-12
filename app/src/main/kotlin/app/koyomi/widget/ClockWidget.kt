@@ -93,7 +93,7 @@ class ClockWidget : AppWidgetProvider() {
                 val look = WidgetLook.of(app, settings, app.widgets.get(id))
                 val colors = look.colors
                 val views = RemoteViews(app.packageName, R.layout.widget_clock)
-                val frame = WidgetLook.bitmap(app, manager.getAppWidgetOptions(id), fallbackWidthDp = 250, fallbackHeightDp = 80)
+                val frame = WidgetLook.bitmap(app, manager.getAppWidgetOptions(id), manager.getAppWidgetInfo(id))
                 look.frame(Canvas(frame), density)
                 views.setImageViewBitmap(R.id.widget_image, frame)
 

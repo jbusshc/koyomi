@@ -43,6 +43,9 @@ class KoyomiApp : Application() {
     val weather by lazy { WeatherRepository(this) }
     val widgets by lazy { WidgetConfigStore(this) }
 
+    /** La pantalla que pidió quien abrió la app (un widget), hasta que AppRoot la usa. */
+    val requestedDestination = MutableStateFlow<String?>(null)
+
     // Sube al volver a la app: el permiso, la fecha o la zona pueden haber cambiado mientras tanto
     private val resumed = MutableStateFlow(0)
 
