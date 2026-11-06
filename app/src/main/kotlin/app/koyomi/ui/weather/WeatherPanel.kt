@@ -191,6 +191,7 @@ private fun DayRow(index: Int, day: DayForecast, low: Double, high: Double) {
     val name = when (index) {
         0 -> "今日"
         1 -> "明日"
+        2 -> "明後日"
         else -> "${day.date.monthValue}/${day.date.dayOfMonth}"
     }
     val span = (high - low).coerceAtLeast(1.0)
