@@ -27,6 +27,8 @@ data class WidgetConfig(
     val showEvents: Boolean = true,
     val showMonth: Boolean = true,
     val showNotes: Boolean = true,
+    /** Las próximas horas, si caben. */
+    val showHourly: Boolean = true,
     /** Cada cuántos minutos se pide el tiempo y se repinta. 0: solo a mano (↻) o al abrir la app. */
     val refreshMinutes: Int = DEFAULT_REFRESH_MINUTES,
     /** El botón ↻ en la esquina. */
@@ -37,7 +39,7 @@ data class WidgetConfig(
     val showAlarm: Boolean = false,
 ) {
     fun encode(): String {
-        val flags = listOf(showWeather, showForecast, showEvents, showMonth, showNotes).joinToString("") { if (it) "1" else "0" }
+        val flags = listOf(showWeather, showForecast, showEvents, showMonth, showNotes, showHourly).joinToString("") { if (it) "1" else "0" }
         return listOf(layout.name, skin?.name.orEmpty(), mode?.name.orEmpty(), background.name, flags, refreshMinutes.toString(), if (showRefresh) "1" else "0", zone.orEmpty(), if (showAlarm) "1" else "0").joinToString("|")
     }
 
@@ -51,7 +53,7 @@ data class WidgetConfig(
             val parts = value?.split('|') ?: return WidgetConfig()
             // Las de antes de 0.17 tenían cinco partes, y las de antes de 0.18, siete
             if (parts.size != 5 && parts.size != 7 && parts.size != 9) return WidgetConfig()
-            val flags = parts[4].padEnd(5, '1')
+            val flags = parts[4].padEnd(6, '1')
             return WidgetConfig(
                 layout = WidgetLayout.entries.firstOrNull { it.name == parts[0] } ?: WidgetLayout.AUTO,
                 skin = SkinId.entries.firstOrNull { it.name == parts[1] },
@@ -62,6 +64,7 @@ data class WidgetConfig(
                 showEvents = flags[2] == '1',
                 showMonth = flags[3] == '1',
                 showNotes = flags[4] == '1',
+                showHourly = flags[5] == '1',
                 refreshMinutes = parts.getOrNull(5)?.toIntOrNull()?.takeIf { it in REFRESH_CHOICES } ?: DEFAULT_REFRESH_MINUTES,
                 showRefresh = parts.getOrNull(6) != "0",
                 zone = parts.getOrNull(7)?.takeIf { it.isNotBlank() },

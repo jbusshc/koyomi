@@ -134,6 +134,8 @@ open class SummaryWidget : AppWidgetProvider() {
             val ids = ids(app)
             if (ids.isEmpty()) return
             val settings = app.settings.settings.first()
+            // Si el sistema despertó la app solo para repintar, el último parte aún está en disco
+            app.weather.ensureLoaded()
             val configs = ids.associateWith { app.widgets.get(it) }
             // Con todos en «a mano», el tiempo solo se pide al tocar ↻ o al abrir la app
             val automatic = configs.values.any { it.refreshMinutes > 0 }
@@ -142,18 +144,21 @@ open class SummaryWidget : AppWidgetProvider() {
             val manager = AppWidgetManager.getInstance(app)
             var next = 0L
             for (id in ids) {
-                val config = configs.getValue(id)
-                val bitmap = WidgetLook.bitmap(app, manager.getAppWidgetOptions(id), manager.getAppWidgetInfo(id))
-                val (data, snapshot) = renderSummary(app, bitmap, settings, config)
-                snapshot?.nextChangeMillis()?.let { next = if (next == 0L) it else minOf(next, it) }
-                val views = RemoteViews(app.packageName, R.layout.widget_date_image)
-                views.setImageViewBitmap(R.id.widget_image, bitmap)
-                views.setContentDescription(R.id.widget_image, describe(data))
-                views.setOnClickPendingIntent(R.id.widget_root, openApp(app, if (config.layout == WidgetLayout.MONTH) Destination.MONTH else null))
-                // El botón ↻ es una esquina que no se ve, bajo el dibujo del icono
-                views.setViewVisibility(R.id.widget_refresh, if (config.showRefresh && config.layout != WidgetLayout.DATE) View.VISIBLE else View.GONE)
-                views.setOnClickPendingIntent(R.id.widget_refresh, fetchNow(app))
-                manager.updateAppWidget(id, views)
+                // Un widget que falla no deja sin pintar a los demás
+                runCatching {
+                    val config = configs.getValue(id)
+                    val bitmap = WidgetLook.bitmap(app, manager.getAppWidgetOptions(id), manager.getAppWidgetInfo(id))
+                    val (data, snapshot) = renderSummary(app, bitmap, settings, config)
+                    snapshot?.nextChangeMillis()?.let { next = if (next == 0L) it else minOf(next, it) }
+                    val views = RemoteViews(app.packageName, R.layout.widget_date_image)
+                    views.setImageViewBitmap(R.id.widget_image, bitmap)
+                    views.setContentDescription(R.id.widget_image, describe(data))
+                    views.setOnClickPendingIntent(R.id.widget_root, openApp(app, if (config.layout == WidgetLayout.MONTH) Destination.MONTH else null))
+                    // El botón ↻ es una esquina que no se ve, bajo el dibujo del icono
+                    views.setViewVisibility(R.id.widget_refresh, if (config.showRefresh && config.layout != WidgetLayout.DATE) View.VISIBLE else View.GONE)
+                    views.setOnClickPendingIntent(R.id.widget_refresh, fetchNow(app))
+                    manager.updateAppWidget(id, views)
+                }
             }
 
             // Lo siguiente que cambia: un evento que termina o, como tarde, el cambio de día (también

@@ -14,10 +14,25 @@ import java.net.HttpURLConnection
 import java.net.URL
 import java.net.URLEncoder
 import java.time.LocalDate
+import java.time.LocalDateTime
+import java.time.LocalTime
 import java.util.Locale
 
-/** El parte de un día: código WMO y temperaturas en grados Celsius. */
-data class DayForecast(val date: LocalDate, val code: Int, val max: Double, val min: Double)
+/** El parte de un día: código WMO y temperaturas en grados Celsius, y lo que sepa el servicio de más. */
+data class DayForecast(
+    val date: LocalDate,
+    val code: Int,
+    val max: Double,
+    val min: Double,
+    /** Probabilidad de lluvia, en %. */
+    val rain: Int? = null,
+    val sunrise: LocalTime? = null,
+    val sunset: LocalTime? = null,
+    val uv: Double? = null,
+)
+
+/** Una hora del parte, en la hora local del sitio. */
+data class HourForecast(val time: LocalDateTime, val temperature: Double, val code: Int, val isDay: Boolean, val rain: Int?)
 
 data class WeatherReport(
     /** Para qué sitio es: si el usuario cambia de ciudad, el parte guardado ya no vale. */
@@ -29,7 +44,32 @@ data class WeatherReport(
     val isDay: Boolean,
     /** Hoy y los días siguientes, en la fecha local del sitio. */
     val days: List<DayForecast>,
-)
+    /** Sensación térmica, humedad (%), y viento (m/s y grados de donde sopla). */
+    val feelsLike: Double? = null,
+    val humidity: Int? = null,
+    val windSpeed: Double? = null,
+    val windDegrees: Double? = null,
+    /** Las próximas horas, desde la actual. */
+    val hours: List<HourForecast> = emptyList(),
+    /** La diferencia horaria del sitio con UTC, para saber qué hora es allí. */
+    val utcOffsetSeconds: Int = 0,
+) {
+    /** La fecha y hora de ahora en el sitio del parte. */
+    fun placeNow(nowMillis: Long = System.currentTimeMillis()): LocalDateTime =
+        LocalDateTime.ofEpochSecond(nowMillis / 1000, 0, java.time.ZoneOffset.ofTotalSeconds(utcOffsetSeconds))
+
+    /** Las horas que aún no han pasado, empezando por la actual. */
+    fun hoursAhead(nowMillis: Long = System.currentTimeMillis()): List<HourForecast> {
+        val from = placeNow(nowMillis).withMinute(0).withSecond(0).withNano(0)
+        return hours.filter { !it.time.isBefore(from) }
+    }
+
+    /** Hoy y los días siguientes: un parte guardado de ayer no enseña ayer. */
+    fun daysAhead(nowMillis: Long = System.currentTimeMillis()): List<DayForecast> {
+        val today = placeNow(nowMillis).toLocalDate()
+        return days.filter { !it.date.isBefore(today) }
+    }
+}
 
 /**
  * Lo único de Koyomi que usa internet. Pide el tiempo a Open-Meteo con las coordenadas de la
@@ -59,10 +99,11 @@ class WeatherRepository(context: Context) {
                 _failed.value = false
                 return@withContext
             }
-            if (_report.value == null) _report.value = runCatching { parseCache(cache.readText()) }.getOrNull()
+            loadCache()
             val current = _report.value?.takeIf { it.place == place.key }
             if (current == null) _report.value = null
-            if (!force && current != null && System.currentTimeMillis() - current.fetchedAt < FRESH_MS) return@withContext
+            // Un parte guardado por una versión anterior, sin horas, se pide de nuevo
+            if (!force && current != null && current.hours.isNotEmpty() && System.currentTimeMillis() - current.fetchedAt < FRESH_MS) return@withContext
 
             val fetched = runCatching { fetch(place) }
             _failed.value = fetched.isFailure
@@ -71,6 +112,16 @@ class WeatherRepository(context: Context) {
                 runCatching { cache.writeText(json) }
             }
         }
+    }
+
+    /**
+     * Pone en memoria el último parte guardado, sin pedir nada. Los widgets lo necesitan cuando el
+     * sistema despierta la app solo para repintar: sin esto salían sin tiempo hasta la siguiente petición.
+     */
+    suspend fun ensureLoaded() = lock.withLock { withContext(Dispatchers.IO) { loadCache() } }
+
+    private fun loadCache() {
+        if (_report.value == null) _report.value = runCatching { parseCache(cache.readText()) }.getOrNull()
     }
 
     /** Ciudades que casan con [query], con el nombre en japonés cuando lo hay. */
@@ -94,7 +145,10 @@ class WeatherRepository(context: Context) {
         // Dos decimales: algo más de un kilómetro. Basta para el tiempo de una ciudad
         val url = String.format(
             Locale.ROOT,
-            "%s?latitude=%.2f&longitude=%.2f&current=temperature_2m,weather_code,is_day&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=auto&forecast_days=3",
+            "%s?latitude=%.2f&longitude=%.2f&current=temperature_2m,weather_code,is_day,apparent_temperature,relative_humidity_2m,wind_speed_10m,wind_direction_10m" +
+                "&hourly=temperature_2m,weather_code,precipitation_probability,is_day&forecast_hours=24" +
+                "&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,sunrise,sunset,uv_index_max" +
+                "&wind_speed_unit=ms&timezone=auto&forecast_days=7",
             FORECAST,
             place.latitude,
             place.longitude,
@@ -111,6 +165,12 @@ class WeatherRepository(context: Context) {
         val current = body.getJSONObject("current")
         val daily = body.getJSONObject("daily")
         val dates = daily.getJSONArray("time")
+        fun org.json.JSONArray?.double(i: Int): Double? = this?.takeIf { i < it.length() && !it.isNull(i) }?.getDouble(i)
+        fun org.json.JSONArray?.int(i: Int): Int? = double(i)?.let { Math.round(it).toInt() }
+        fun org.json.JSONArray?.clock(i: Int): LocalTime? = this?.takeIf { i < it.length() && !it.isNull(i) }?.getString(i)?.let { runCatching { LocalDateTime.parse(it).toLocalTime() }.getOrNull() }
+
+        val hourly = body.optJSONObject("hourly")
+        val hourTimes = hourly?.optJSONArray("time")
         return WeatherReport(
             place = body.getString(KEY_PLACE),
             fetchedAt = body.getLong(KEY_FETCHED),
@@ -118,12 +178,30 @@ class WeatherRepository(context: Context) {
             code = current.getInt("weather_code"),
             // Un parte guardado antes de que se pidiera este dato se toma por de día
             isDay = current.optInt("is_day", 1) == 1,
+            feelsLike = if (current.has("apparent_temperature")) current.optDouble("apparent_temperature") else null,
+            utcOffsetSeconds = body.optInt("utc_offset_seconds", 0),
+            humidity = if (current.has("relative_humidity_2m")) current.optInt("relative_humidity_2m") else null,
+            windSpeed = if (current.has("wind_speed_10m")) current.optDouble("wind_speed_10m") else null,
+            windDegrees = if (current.has("wind_direction_10m")) current.optDouble("wind_direction_10m") else null,
             days = List(dates.length()) { i ->
                 DayForecast(
                     date = LocalDate.parse(dates.getString(i)),
                     code = daily.getJSONArray("weather_code").getInt(i),
                     max = daily.getJSONArray("temperature_2m_max").getDouble(i),
                     min = daily.getJSONArray("temperature_2m_min").getDouble(i),
+                    rain = daily.optJSONArray("precipitation_probability_max").int(i),
+                    sunrise = daily.optJSONArray("sunrise").clock(i),
+                    sunset = daily.optJSONArray("sunset").clock(i),
+                    uv = daily.optJSONArray("uv_index_max").double(i),
+                )
+            },
+            hours = List(hourTimes?.length() ?: 0) { i ->
+                HourForecast(
+                    time = LocalDateTime.parse(hourTimes!!.getString(i)),
+                    temperature = hourly.optJSONArray("temperature_2m").double(i) ?: 0.0,
+                    code = hourly.optJSONArray("weather_code").int(i) ?: 0,
+                    isDay = (hourly.optJSONArray("is_day").int(i) ?: 1) == 1,
+                    rain = hourly.optJSONArray("precipitation_probability").int(i),
                 )
             },
         )

@@ -34,7 +34,7 @@ class TodayViewModel(app: Application) : AndroidViewModel(app) {
     val state: StateFlow<TodayUi> =
         koyomi.now.map { it.today }.distinctUntilChanged()
             .flatMapLatest { today ->
-                combine(koyomi.agenda(today, today.plusDays(1)), koyomi.settings.settings) { events, settings ->
+                combine(koyomi.agenda(today, today.plusDays(7)), koyomi.settings.settings) { events, settings ->
                     TodayUi(today, settings, events)
                 }
             }

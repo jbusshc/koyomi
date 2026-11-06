@@ -133,6 +133,24 @@ private fun TodayContent(state: TodayUi, onDateClick: () -> Unit, onGrant: () ->
             ) {
                 DayEvents(events[state.tomorrow].orEmpty(), state.settings.timeStyle, colors, onOpen)
             }
+            // Los días de después, solo los que tienen algo
+            for (offset in 2L..7L) {
+                val day = state.today.plusDays(offset)
+                val list = events[day].orEmpty()
+                if (list.isEmpty()) continue
+                val date = JaDate.of(day)
+                val dayHoliday = Shukujitsu.of(day)
+                skin.Panel(
+                    Modifier.fillMaxWidth(),
+                    title = {
+                        Text(date.monthDay, color = colors.ink, fontSize = 16.sp, fontWeight = skin.strong)
+                        Text("（${date.youbi.short}）", color = youbiColor(date.youbi, dayHoliday != null, colors, other = colors.inkSoft), fontSize = 14.sp)
+                        if (dayHoliday != null) Text(dayHoliday, color = colors.sunday, fontSize = 14.sp)
+                    },
+                ) {
+                    DayEvents(list, state.settings.timeStyle, colors, onOpen)
+                }
+            }
         }
         Spacer(Modifier.height(32.dp))
     }

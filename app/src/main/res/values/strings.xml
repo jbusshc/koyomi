@@ -68,6 +68,7 @@
     <string name="wc_show">Show</string>
     <string name="wc_show_weather">The weather</string>
     <string name="wc_show_forecast">Three-day forecast</string>
+    <string name="wc_show_hourly">Next hours (when there is room)</string>
     <string name="wc_show_events">Events</string>
     <string name="wc_show_month">Month calendar</string>
     <string name="wc_show_notes">Readings and calendar notes</string>

@@ -34,5 +34,29 @@ data class Tenki(val kanji: String, val kana: String) {
 
         /** 24℃, -3℃: redondeado, como en un parte */
         fun temperature(celsius: Double): String = "${Math.round(celsius)}℃"
+
+        private val WIND = listOf("北", "北東", "東", "南東", "南", "南西", "西", "北西")
+
+        /** De dónde sopla el viento, con los ocho rumbos de un parte: 0° es 北, 90° es 東. */
+        fun windFrom(degrees: Double): String = WIND[(((degrees % 360 + 360) % 360 + 22.5) / 45).toInt() % 8]
+
+        /** «北東 3m/s». */
+        fun wind(metersPerSecond: Double, degrees: Double): String = "${windFrom(degrees)} ${Math.round(metersPerSecond)}m/s"
+
+        /** La probabilidad de lluvia como en un parte: de diez en diez, «40%». */
+        fun chance(percent: Int): String = "${(percent / 10.0).let { Math.round(it) * 10 }}%"
+
+        /** El índice UV con su palabra: 弱い (hasta 2), 中程度 (hasta 5), 強い (hasta 7), とても強い (hasta 10), 非常に強い. */
+        fun uv(index: Double): String {
+            val shown = Math.round(index).toInt()
+            val word = when {
+                index < 3 -> "弱い"
+                index < 6 -> "中程度"
+                index < 8 -> "強い"
+                index < 11 -> "とても強い"
+                else -> "非常に強い"
+            }
+            return "$shown $word"
+        }
     }
 }

@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -145,29 +146,51 @@ private fun ConfigScreen(
         preview = bitmap
     }
 
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 12.dp)) {
-        Text("ウィジェット", color = colors.ink, fontSize = 24.sp, fontWeight = skin.strong, modifier = Modifier.padding(top = 8.dp))
-        Text(stringResource(R.string.widget_config_title), color = colors.inkSoft, fontSize = 13.sp, modifier = Modifier.padding(bottom = 14.dp))
+    // El reloj sí se enseña como es: se infla su propio layout, con la hora y la fecha de verdad
+    val clockPreview = if (isClock) {
+        remember(config, settings) {
+            val bitmap = Bitmap.createBitmap((previewWidthDp * density).roundToInt().coerceAtLeast(1), (previewHeightDp * density).roundToInt().coerceAtLeast(1), Bitmap.Config.ARGB_8888)
+            ClockWidget.clockViews(app, settings, config, bitmap, previewHeightDp.toFloat(), java.time.ZonedDateTime.now())
+        }
+    } else {
+        null
+    }
+
+    // La vista previa y el botón de guardar quedan fijos; lo que se elige se desplaza entre los dos
+    Column(Modifier.fillMaxSize().padding(horizontal = 16.dp)) {
+        Text("ウィジェット", color = colors.ink, fontSize = 24.sp, fontWeight = skin.strong, modifier = Modifier.padding(top = 20.dp))
+        Text(stringResource(R.string.widget_config_title), color = colors.inkSoft, fontSize = 13.sp, modifier = Modifier.padding(bottom = 10.dp))
 
         Box(
             Modifier
                 .fillMaxWidth()
                 .clip(skin.buttonShape)
                 .background(Brush.linearGradient(listOf(Color(0xFF3B5B8C), Color(0xFFB3689A), Color(0xFFF2B27A))))
-                .padding(16.dp),
+                .padding(12.dp),
             contentAlignment = Alignment.Center,
         ) {
-            preview?.let {
-                Image(
-                    it.asImageBitmap(),
-                    contentDescription = null,
-                    contentScale = ContentScale.Fit,
-                    modifier = Modifier.fillMaxWidth().height(minOf(previewHeightDp, 260).dp),
+            if (clockPreview != null) {
+                androidx.compose.ui.viewinterop.AndroidView(
+                    factory = { android.widget.FrameLayout(it) },
+                    update = { frame ->
+                        frame.removeAllViews()
+                        frame.addView(clockPreview.apply(frame.context, frame))
+                    },
+                    modifier = Modifier.width(previewWidthDp.dp).height(previewHeightDp.dp),
                 )
+            } else {
+                preview?.let {
+                    Image(
+                        it.asImageBitmap(),
+                        contentDescription = null,
+                        contentScale = ContentScale.Fit,
+                        modifier = Modifier.fillMaxWidth().height(minOf(previewHeightDp, 200).dp),
+                    )
+                }
             }
         }
 
-        Column(Modifier.padding(top = 14.dp)) {
+        Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(top = 14.dp)) {
             if (!isClock) {
                 OptionSection("内容", stringResource(R.string.wc_layout), colors) {
                     OptionChoice("おまかせ", stringResource(R.string.wc_layout_auto), config.layout == WidgetLayout.AUTO, colors) { onChange(config.copy(layout = WidgetLayout.AUTO)) }
@@ -243,7 +266,7 @@ private fun ConfigScreen(
 
         Box(
             Modifier
-                .padding(top = 20.dp, bottom = 12.dp)
+                .padding(top = 10.dp, bottom = 12.dp)
                 .fillMaxWidth()
                 .clip(skin.buttonShape)
                 .background(colors.accent)
@@ -270,14 +293,15 @@ private class Toggle(val label: String, val gloss: Int, val value: (WidgetConfig
 
 private val showWeather = Toggle("天気", R.string.wc_show_weather, { it.showWeather }) { c, v -> c.copy(showWeather = v) }
 private val showForecast = Toggle("三日間", R.string.wc_show_forecast, { it.showForecast }) { c, v -> c.copy(showForecast = v) }
+private val showHourly = Toggle("時間ごと", R.string.wc_show_hourly, { it.showHourly }) { c, v -> c.copy(showHourly = v) }
 private val showEvents = Toggle("予定", R.string.wc_show_events, { it.showEvents }) { c, v -> c.copy(showEvents = v) }
 private val showMonth = Toggle("月", R.string.wc_show_month, { it.showMonth }) { c, v -> c.copy(showMonth = v) }
 private val showNotes = Toggle("暦注と読み", R.string.wc_show_notes, { it.showNotes }) { c, v -> c.copy(showNotes = v) }
 
 /** Lo que se puede encender o apagar en cada disposición. */
 private fun togglesFor(layout: WidgetLayout): List<Toggle> = when (layout) {
-    WidgetLayout.AUTO -> listOf(showWeather, showForecast, showEvents, showMonth, showNotes)
-    WidgetLayout.WEATHER -> listOf(showForecast)
+    WidgetLayout.AUTO -> listOf(showWeather, showForecast, showHourly, showEvents, showMonth, showNotes)
+    WidgetLayout.WEATHER -> listOf(showForecast, showHourly)
     WidgetLayout.AGENDA -> listOf(showMonth, showNotes)
     WidgetLayout.DATE -> listOf(showNotes)
     WidgetLayout.MONTH -> listOf(showEvents)

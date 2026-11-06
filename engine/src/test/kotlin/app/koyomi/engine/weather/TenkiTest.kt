@@ -36,4 +36,24 @@ class TenkiTest {
         Tenki.temperature(-2.6) shouldBe "-3℃"
         Tenki.temperature(-0.2) shouldBe "0℃"
     }
+
+    @Test
+    fun `el viento tiene ocho rumbos`() {
+        Tenki.windFrom(0.0) shouldBe "北"
+        Tenki.windFrom(359.0) shouldBe "北"
+        Tenki.windFrom(45.0) shouldBe "北東"
+        Tenki.windFrom(90.0) shouldBe "東"
+        Tenki.windFrom(225.0) shouldBe "南西"
+        Tenki.wind(3.4, 270.0) shouldBe "西 3m/s"
+    }
+
+    @Test
+    fun `la lluvia va de diez en diez y el UV con su palabra`() {
+        Tenki.chance(43) shouldBe "40%"
+        Tenki.chance(0) shouldBe "0%"
+        Tenki.chance(100) shouldBe "100%"
+        Tenki.uv(1.2) shouldBe "1 弱い"
+        Tenki.uv(7.0) shouldBe "7 強い"
+        Tenki.uv(12.0) shouldBe "12 非常に強い"
+    }
 }

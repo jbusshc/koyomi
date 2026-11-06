@@ -66,6 +66,7 @@
     <string name="wc_show">Mostrar</string>
     <string name="wc_show_weather">El tiempo</string>
     <string name="wc_show_forecast">Pronóstico de tres días</string>
+    <string name="wc_show_hourly">Próximas horas (si hay sitio)</string>
     <string name="wc_show_events">Eventos</string>
     <string name="wc_show_month">Calendario del mes</string>
     <string name="wc_show_notes">Lecturas y notas del calendario</string>

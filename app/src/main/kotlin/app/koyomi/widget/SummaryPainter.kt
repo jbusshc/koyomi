@@ -69,7 +69,7 @@ internal class SummaryPainter(
     private val sections: Set<Section>,
     private val config: WidgetConfig = WidgetConfig(),
 ) {
-    private val canvas = Canvas(bitmap)
+    private var canvas = Canvas(bitmap)
     private val colors = look.colors
     private val skin = skinOf(look.skin)
     private val text = TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
@@ -78,7 +78,21 @@ internal class SummaryPainter(
         if (look.background == WidgetBackground.CLEAR) setShadowLayer(3f * density, 0f, density, 0xAA000000.toInt())
     }
     private val shape = Paint(Paint.ANTI_ALIAS_FLAG)
-    private val sink = WeatherIcons.canvasSink(canvas)
+    private var sink = WeatherIcons.canvasSink(canvas)
+
+    /** Mide lo que ocuparía [layout] sin pintar nada en el widget: lo dibuja en un lienzo de usar y tirar. */
+    private fun dry(layout: () -> Float): Float {
+        val realCanvas = canvas
+        val realSink = sink
+        canvas = Canvas(Bitmap.createBitmap(1, 1, Bitmap.Config.ARGB_8888))
+        sink = WeatherIcons.canvasSink(canvas)
+        try {
+            return layout()
+        } finally {
+            canvas = realCanvas
+            sink = realSink
+        }
+    }
 
     private val hasWeather = Section.WEATHER in sections && (data.place != null || sections.size == 1)
 
@@ -110,7 +124,7 @@ internal class SummaryPainter(
         val columns = buildList {
             if (hasWeather) add(Column(if (data.report == null) 100f else 112f) { cx, cw -> centred(y, h, heroHeight(compact = true, cw)) { top -> hero(cx, top, cw, compact = true) } })
             if (Section.DATE in sections) add(Column(DATE_COLUMN_MIN) { cx, cw -> centred(y, h, DATE_BLOCK) { top -> dateBlock(cx, top, cw) } })
-            if (hasWeather && data.report != null) add(Column(70f) { cx, cw -> centred(y, h, HILO_BLOCK) { top -> hiloBlock(cx, top, cw) } })
+            if (hasWeather && data.report != null) add(Column(70f) { cx, cw -> centred(y, h, if (h >= 66f && data.report.daysAhead().firstOrNull()?.rain != null) HILO_BLOCK_RAIN else HILO_BLOCK) { top -> hiloBlock(cx, top, cw, h) } })
             if (Section.EVENTS in sections) add(Column(120f, grow = true) { cx, cw -> centred(y, h, NEXT_BLOCK) { top -> nextEvent(cx, top, cw) } })
         }
         // Tantas columnas como quepan, en el orden de importancia
@@ -139,26 +153,82 @@ internal class SummaryPainter(
     }
 
     private fun oneColumn(x: Float, y: Float, w: Float, h: Float) {
+        // Con poco que enseñar, el contenido se centra en vertical en vez de quedarse pegado arriba
+        val used = dry { oneColumnBody(x, y, w, h) }
+        val offset = ((h - used) / 2).coerceIn(0f, 70f)
+        oneColumnBody(x, y + offset, w, h - offset)
+    }
+
+    /** Devuelve el alto que ocupó. */
+    private fun oneColumnBody(x: Float, y: Float, w: Float, h: Float): Float {
         var top = y
         val bottom = y + h
         val big = h >= 150f
         if (hasWeather) top += hero(x, top, w, compact = !big) + GAP
         if (Section.DATE in sections && top + DATE_ROW <= bottom) top += dateRow(x, top, w) + GAP
         if (hasWeather && data.report != null) {
-            // Los tres días si caben sin quitarle a los eventos sus dos primeras filas; si no, una
-            // línea con la máxima y la mínima
-            val room = bottom - top
-            val keepForEvents = Section.EVENTS in sections && room < FORECAST_BLOCK + 2 * EVENT_ROW_STACKED
-            if (room >= FORECAST_BLOCK && !keepForEvents && config.showForecast) {
-                top += forecast(x, top, w) + GAP
-            } else if (room >= HILO_LINE) {
-                top += hiloLine(x, top, w) + 2f
-            }
+            // A los eventos se les guardan sus dos primeras filas
+            val reserve = if (Section.EVENTS in sections) 2 * EVENT_ROW_STACKED else 0f
+            top += weatherStack(x, top, w, bottom, reserve)
         }
         top += notes(x, top, w, bottom - top)
         if (Section.EVENTS in sections) top += events(x, top, w, bottom - top) + GAP
-        if (Section.DATE in sections && config.showMonth && bottom - top >= MONTH_MIN) monthBlock(x, top, w, bottom - top)
+        if (Section.DATE in sections && config.showMonth && bottom - top >= MONTH_MIN) top += monthBlock(x, top, w, bottom - top)
+        return top - y - GAP
     }
+
+    /**
+     * Lo que sigue al tiempo de ahora, por orden de importancia y mientras quepa: el parte de los
+     * tres días (o, si no cabe, la máxima y la mínima), los detalles y las horas. Se dibujan de más
+     * cercano a mas lejano. [reserve] es el alto que se deja libre debajo.
+     */
+    private fun weatherStack(x: Float, y: Float, w: Float, bottom: Float, reserve: Float): Float {
+        var room = bottom - y - reserve
+        val forecast = config.showForecast && room >= FORECAST_BLOCK
+        if (forecast) room -= FORECAST_BLOCK + GAP else if (room >= HILO_LINE) room -= HILO_LINE + 2f
+        val hourly = config.showHourly && hasHours && room >= HOURLY_BLOCK + GAP
+        if (hourly) room -= HOURLY_BLOCK + GAP
+        val details = hasDetails && room >= DETAILS_LINE + 4f
+        if (details) room -= DETAILS_LINE + 4f
+        val sun = sunText() != null && room >= DETAILS_LINE + 4f
+
+        var top = y
+        if (details) top += detailsLine(x, top, w) + 4f
+        if (hourly) top += hourly(x, top, w) + GAP
+        if (forecast) {
+            top += forecast(x, top, w) + GAP
+        } else if (bottom - top - reserve >= HILO_LINE) {
+            top += hiloLine(x, top, w) + 2f
+        }
+        if (sun) {
+            val line = sunFitting(w)!!
+            writeCentred(line, x, w, top + 13f, fitSp(line, 12f, 9f, w), colors.inkSoft)
+            top += DETAILS_LINE + 4f
+        }
+        return top - y
+    }
+
+    /** «日の出 6:12　日の入 16:48　紫外線 3 中程度». */
+    private fun sunText(): String? {
+        val today = data.report?.daysAhead()?.firstOrNull() ?: return null
+        val parts = listOfNotNull(
+            today.sunrise?.let { "日の出 ${it.hour}:%02d".format(it.minute) },
+            today.sunset?.let { "日の入 ${it.hour}:%02d".format(it.minute) },
+            today.uv?.let { "紫外線 ${Tenki.uv(it)}" },
+        )
+        return parts.takeIf { it.isNotEmpty() }?.joinToString("　")
+    }
+
+    /** La línea del sol, sin la parte que no quepa en [width]. */
+    private fun sunFitting(width: Float): String? {
+        val full = sunText() ?: return null
+        if (measure(full, 10f) <= width) return full
+        val trimmed = full.substringBeforeLast("　紫外線")
+        return trimmed
+    }
+
+    private val hasHours get() = data.report?.hoursAhead().orEmpty().size >= 3
+    private val hasDetails get() = data.report?.let { it.feelsLike != null || it.humidity != null || it.daysAhead().firstOrNull()?.rain != null } == true
 
     private fun twoColumns(x: Float, y: Float, w: Float, h: Float) {
         val leftWidth = (w * 0.46f).coerceAtLeast(140f).coerceAtMost(w - 130f)
@@ -168,9 +238,7 @@ internal class SummaryPainter(
 
         var top = y
         top += hero(x, top, leftWidth, compact = h < 150f) + GAP
-        if (data.report != null) {
-            if (top + FORECAST_BLOCK <= bottom && config.showForecast) top += forecast(x, top, leftWidth) + GAP else if (top + HILO_LINE <= bottom) top += hiloLine(x, top, leftWidth) + GAP
-        }
+        if (data.report != null) top += weatherStack(x, top, leftWidth, bottom, 0f)
         val monthOnLeft = Section.DATE in sections && config.showMonth && bottom - top >= MONTH_MIN
         if (monthOnLeft) monthBlock(x, top, leftWidth, bottom - top)
 
@@ -206,17 +274,24 @@ internal class SummaryPainter(
         val wordSp = if (compact) 13f else 15f
         // Con poco ancho, el icono cede sitio a las letras
         val iconSize = if (w < 112f) 36f else icon
-        WeatherIcons.paint(sink, skin, colors, Sky.of(report.code), !report.isDay, x * density, y * density, iconSize * density)
+        val showPlace = place != null && w - iconSize - 8f >= 56f
+        val temperature = Tenki.temperature(report.temperature)
+        val word = Tenki.of(report.code).kanji
+        val textNeeded = maxOf(measure(temperature, temperatureSp), measure(word, wordSp), if (showPlace) measure(place!!.name, 11f) else 0f)
+        // El icono y las letras, juntos y centrados en el hueco
+        val contentWidth = minOf(w, iconSize + 8f + textNeeded)
+        val left = x + (w - contentWidth) / 2
+        WeatherIcons.paint(sink, skin, colors, Sky.of(report.code), !report.isDay, left * density, y * density, iconSize * density)
 
-        val textX = x + iconSize + 8f
-        val textW = w - iconSize - 8f
+        val textX = left + iconSize + 8f
+        val textW = contentWidth - iconSize - 8f
         var baseline = y + temperatureSp * 0.92f
-        write(Tenki.temperature(report.temperature), textX, baseline, temperatureSp, colors.ink, maxWidth = textW)
+        write(temperature, textX, baseline, temperatureSp, colors.ink, maxWidth = textW)
         baseline += wordSp + 5f
-        write(Tenki.of(report.code).kanji, textX, baseline, wordSp, colors.ink, maxWidth = textW)
-        if (place != null && textW >= 56f) {
+        write(word, textX, baseline, wordSp, colors.ink, maxWidth = textW)
+        if (showPlace) {
             baseline += 15f
-            write(place.name, textX, baseline, 11f, colors.inkSoft, maxWidth = textW)
+            write(place!!.name, textX, baseline, 11f, colors.inkSoft, maxWidth = textW)
         }
         return maxOf(iconSize, baseline - y + 4f)
     }
@@ -236,36 +311,53 @@ internal class SummaryPainter(
      * toque es de un área mayor que pone el widget (R.id.widget_refresh).
      */
     private fun refreshGlyph(widthDp: Float, inset: Float) {
-        val radius = 4.5f
+        val radius = 4.6f
         // Dentro del margen que deja el marco, entre su borde y el contenido
-        val offset = maxOf(inset - 5.5f, radius + 2f)
+        val offset = maxOf(inset - 3f, radius + 7f)
         val cx = widthDp - offset
         val cy = offset
+        val color = colors.inkSoft.copy(alpha = 0.95f).toArgb()
+        // Un arco casi entero, en el sentido de las agujas del reloj, que acaba arriba...
+        val start = -30f
+        val sweep = 300f
         shape.style = Paint.Style.STROKE
-        shape.strokeWidth = 1.5f * density
-        shape.strokeCap = Paint.Cap.ROUND
-        shape.color = colors.inkSoft.copy(alpha = 0.9f).toArgb()
-        val oval = android.graphics.RectF((cx - radius) * density, (cy - radius) * density, (cx + radius) * density, (cy + radius) * density)
-        canvas.drawArc(oval, 20f, 290f, false, shape)
-        // La punta de la flecha, en el extremo del arco
-        val tipX = cx + radius * kotlin.math.cos(Math.toRadians(20.0)).toFloat()
-        val tipY = cy + radius * kotlin.math.sin(Math.toRadians(20.0)).toFloat()
-        val arrow = 4.2f
-        canvas.drawLine(tipX * density, tipY * density, (tipX + arrow) * density, (tipY - arrow * 0.3f) * density, shape)
-        canvas.drawLine(tipX * density, tipY * density, (tipX - arrow * 0.2f) * density, (tipY - arrow) * density, shape)
-        shape.style = Paint.Style.FILL
+        shape.strokeWidth = 1.6f * density
         shape.strokeCap = Paint.Cap.BUTT
+        shape.color = color
+        canvas.drawArc(android.graphics.RectF((cx - radius) * density, (cy - radius) * density, (cx + radius) * density, (cy + radius) * density), start, sweep, false, shape)
+        // ...y una punta rellena, que sigue la tangente del arco en su extremo
+        val end = Math.toRadians((start + sweep).toDouble())
+        val px = cx + radius * kotlin.math.cos(end).toFloat()
+        val py = cy + radius * kotlin.math.sin(end).toFloat()
+        val tx = -kotlin.math.sin(end).toFloat()
+        val ty = kotlin.math.cos(end).toFloat()
+        val nx = kotlin.math.cos(end).toFloat()
+        val ny = kotlin.math.sin(end).toFloat()
+        val head = android.graphics.Path().apply {
+            moveTo((px + tx * 3.6f) * density, (py + ty * 3.6f) * density)
+            lineTo((px - tx * 0.6f + nx * 3.2f) * density, (py - ty * 0.6f + ny * 3.2f) * density)
+            lineTo((px - tx * 0.6f - nx * 3.2f) * density, (py - ty * 0.6f - ny * 3.2f) * density)
+            close()
+        }
+        shape.style = Paint.Style.FILL
+        canvas.drawPath(head, shape)
     }
 
     /** El día de la semana, en un sello a la izquierda y la fecha al lado. Para una fila baja. */
     private fun dateBlock(x: Float, y: Float, w: Float) {
         val date = data.date
         val size = BADGE_SMALL
-        weekdayBadge(x, y + (DATE_BLOCK - size) / 2, size)
-        val textX = x + size + 9f
-        val textW = w - size - 9f
-        write(date.monthDay, textX, y + 19f, fitSp(date.monthDay, 20f, 14f, textW), colors.ink, maxWidth = textW)
         val aside = data.holiday ?: date.year.takeIf { data.dateStyle != DateStyle.SIMPLE }
+        // El sello y la fecha, juntos y centrados en la columna
+        val textMax = w - size - 9f
+        val daySp = fitSp(date.monthDay, 20f, 14f, textMax)
+        val textNeeded = maxOf(measure(date.monthDay, daySp), if (aside != null) measure(aside, 12f) else 0f)
+        val contentWidth = minOf(w, size + 9f + textNeeded)
+        val left = x + (w - contentWidth) / 2
+        weekdayBadge(left, y + (DATE_BLOCK - size) / 2, size)
+        val textX = left + size + 9f
+        val textW = contentWidth - size - 9f
+        write(date.monthDay, textX, y + 19f, daySp, colors.ink, maxWidth = textW)
         if (aside != null) write(aside, textX, y + 37f, 12f, if (data.holiday != null) colors.sunday else colors.inkSoft, maxWidth = textW)
     }
 
@@ -378,25 +470,64 @@ internal class SummaryPainter(
         canvas.drawText(label, (l + r) / 2 - text.measureText(label) / 2, baseline, text)
     }
 
-    private fun hiloBlock(x: Float, y: Float, w: Float) {
-        val today = data.report?.days?.getOrNull(0) ?: return
-        write("最高 ${Tenki.temperature(today.max)}", x, y + 14f, 13f, colors.ink, maxWidth = w)
-        write("最低 ${Tenki.temperature(today.min)}", x, y + 34f, 13f, colors.inkSoft, maxWidth = w)
+    private fun hiloBlock(x: Float, y: Float, w: Float, h: Float) {
+        val today = data.report?.daysAhead()?.firstOrNull() ?: return
+        writeCentred("最高 ${Tenki.temperature(today.max)}", x, w, y + 14f, 13f, colors.ink)
+        writeCentred("最低 ${Tenki.temperature(today.min)}", x, w, y + 34f, 13f, colors.inkSoft)
+        if (h >= 66f) today.rain?.let { writeCentred("降水 ${Tenki.chance(it)}", x, w, y + 54f, 12f, colors.saturday) }
     }
 
     private fun hiloLine(x: Float, y: Float, w: Float): Float {
-        val today = data.report?.days?.getOrNull(0) ?: return 0f
-        write("最高 ${Tenki.temperature(today.max)}　最低 ${Tenki.temperature(today.min)}", x, y + 14f, 13f, colors.ink, maxWidth = w)
+        val today = data.report?.daysAhead()?.firstOrNull() ?: return 0f
+        writeCentred("最高 ${Tenki.temperature(today.max)}　最低 ${Tenki.temperature(today.min)}", x, w, y + 14f, 13f, colors.ink)
         return HILO_LINE
+    }
+
+    /** 体感, 湿度 y 降水, en una línea y centrada. */
+    private fun detailsLine(x: Float, y: Float, w: Float): Float {
+        val report = data.report ?: return 0f
+        val parts = listOfNotNull(
+            report.feelsLike?.let { "体感 ${Tenki.temperature(it)}" },
+            report.humidity?.let { "湿度 $it%" },
+            report.daysAhead().firstOrNull()?.rain?.let { "降水 ${Tenki.chance(it)}" },
+        )
+        var shown = parts
+        while (shown.size > 1 && measure(shown.joinToString("　"), 11f) > w) shown = shown.dropLast(1)
+        val line = shown.joinToString("　")
+        writeCentred(line, x, w, y + 13f, fitSp(line, 12f, 9f, w), colors.inkSoft)
+        return DETAILS_LINE
+    }
+
+    /** Las próximas horas, cada una con su icono, su temperatura y la lluvia si es probable. */
+    private fun hourly(x: Float, y: Float, w: Float): Float {
+        val hours = data.report?.hoursAhead().orEmpty()
+        val count = (w / HOUR_CELL).toInt().coerceIn(3, 8)
+        val step = if (count <= 4) 1 else 2
+        val cell = w / count
+        for (index in 0 until count) {
+            val hour = hours.getOrNull(index * step) ?: break
+            val cx = x + cell * index + cell / 2
+            val label = if (index == 0) "今" else "${hour.time.hour}時"
+            write(label, cx - measure(label, 11f) / 2, y + 11f, 11f, colors.inkSoft)
+            WeatherIcons.paint(sink, skin, colors, Sky.of(hour.code), !hour.isDay, (cx - 12f) * density, (y + 15f) * density, 24f * density)
+            val temperature = Tenki.temperature(hour.temperature)
+            write(temperature, cx - measure(temperature, 12f) / 2, y + 53f, 12f, colors.ink)
+            val rain = hour.rain
+            if (rain != null && rain >= 20) {
+                val chance = Tenki.chance(rain)
+                write(chance, cx - measure(chance, 10f) / 2, y + 65f, 10f, colors.saturday)
+            }
+        }
+        return HOURLY_BLOCK
     }
 
     /** Tres días, cada uno con su icono y su máxima sobre su mínima. */
     private fun forecast(x: Float, y: Float, w: Float): Float {
-        val days = data.report?.days.orEmpty().take(FORECAST_LABELS.size)
-        val column = w / FORECAST_LABELS.size
+        val days = data.report?.daysAhead().orEmpty().take(if (w >= 300f) 5 else FORECAST_LABELS.size)
+        val column = w / days.size.coerceAtLeast(1)
         days.forEachIndexed { index, day ->
             val cx = x + column * index + column / 2
-            val label = FORECAST_LABELS[index]
+            val label = FORECAST_LABELS.getOrNull(index) ?: Youbi.of(day.date).short
             write(label, cx - measure(label, 11f) / 2, y + 11f, 11f, colors.inkSoft)
             WeatherIcons.paint(sink, skin, colors, Sky.of(day.code), false, (cx - 15f) * density, (y + 16f) * density, 30f * density)
             val max = Tenki.temperature(day.max)
@@ -428,14 +559,17 @@ internal class SummaryPainter(
         when {
             event != null -> {
                 val dot = 6f
-                shape.color = event.color.toArgb()
-                dotAt(x, y + 4f, dot)
                 val head = if (dayLabel != null) "${dayLabel.text}　${event.time}" else event.time
-                write(head, x + dot + 6f, y + 12f, 12f, colors.inkSoft, maxWidth = w - dot - 6f)
-                write(event.title, x, y + 32f, 14f, colors.ink, maxWidth = w)
+                // Las dos líneas, como un bloque centrado en la columna
+                val needed = maxOf(dot + 6f + measure(head, 12f), measure(event.title, 14f))
+                val left = x + (w - minOf(w, needed)) / 2
+                shape.color = event.color.toArgb()
+                dotAt(left, y + 4f, dot)
+                write(head, left + dot + 6f, y + 12f, 12f, colors.inkSoft, maxWidth = w - dot - 6f)
+                write(event.title, left, y + 32f, 14f, colors.ink, maxWidth = w)
             }
-            first is Row.Note -> write(first.text, x, y + 22f, 13f, colors.inkSoft, maxWidth = w)
-            else -> write("今日は予定なし", x, y + 22f, 13f, colors.inkSoft, maxWidth = w)
+            first is Row.Note -> writeCentred(first.text, x, w, y + 22f, 13f, colors.inkSoft)
+            else -> writeCentred("今日は予定なし", x, w, y + 22f, 13f, colors.inkSoft)
         }
     }
 
@@ -707,6 +841,10 @@ internal class SummaryPainter(
         // Por debajo de este alto (dp) el mes no cabe: se enseña solo la semana
         const val MONTH_LAYOUT_MIN_HEIGHT = 150f
         const val HILO_BLOCK = 40f
+        const val HILO_BLOCK_RAIN = 60f
+        const val DETAILS_LINE = 18f
+        const val HOURLY_BLOCK = 68f
+        const val HOUR_CELL = 46f
         const val NEXT_BLOCK = 40f
         const val HILO_LINE = 20f
         const val NOTE_ROW = 18f
