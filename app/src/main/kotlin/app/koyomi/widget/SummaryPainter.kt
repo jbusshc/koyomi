@@ -365,14 +365,19 @@ internal class SummaryPainter(
     private fun dateRow(x: Float, y: Float, w: Float): Float {
         val date = data.date
         val size = BADGE_ROW
-        weekdayBadge(x, y, size)
-        val baseline = y + size / 2 + 7f
-        val textX = x + size + 9f
-        val dateWidth = write(date.monthDay, textX, baseline, fitSp(date.monthDay, 20f, 14f, w - size - 9f), colors.ink, maxWidth = w - size - 9f)
         val aside = data.holiday ?: date.year.takeIf { data.dateStyle != DateStyle.SIMPLE }
-        if (aside != null && w - size - 9f - dateWidth > 44f) {
-            write(aside, x + w, baseline, 12f, if (data.holiday != null) colors.sunday else colors.inkSoft, maxWidth = w - size - dateWidth - 20f, alignRight = true)
-        }
+        val daySp = fitSp(date.monthDay, 20f, 14f, w - size - 9f)
+        val dayWidth = measure(date.monthDay, daySp)
+        // El sello, la fecha y, si cabe, lo de al lado: un grupo centrado, como el tiempo de encima
+        val asideWidth = if (aside != null) measure(aside, 12f) else 0f
+        val showAside = aside != null && size + 9f + dayWidth + 12f + asideWidth <= w
+        val group = size + 9f + dayWidth + if (showAside) 12f + asideWidth else 0f
+        val left = x + (w - minOf(group, w)) / 2
+        weekdayBadge(left, y, size)
+        val baseline = y + size / 2 + 7f
+        val textX = left + size + 9f
+        write(date.monthDay, textX, baseline, daySp, colors.ink, maxWidth = w - size - 9f)
+        if (showAside) write(aside!!, textX + dayWidth + 12f, baseline, 12f, if (data.holiday != null) colors.sunday else colors.inkSoft)
         shape.color = colors.rule.toArgb()
         canvas.drawRect(x * density, (y + size + 6f) * density, (x + w) * density, (y + size + 6f) * density + density, shape)
         return DATE_ROW
@@ -689,13 +694,18 @@ internal class SummaryPainter(
         val lines = if (config.showNotes) listOfNotNull(data.reading, data.note, data.nextHoliday) else emptyList()
         if (w >= h * 1.5f) {
             val size = minOf(h - 4f, w * 0.27f, 120f)
-            weekdayBadge(x, y + (h - size) / 2, size)
-            val textX = x + size + 14f
-            val textW = w - size - 14f
+            val maxText = w - size - 14f
             var daySp = (size * 0.42f).coerceIn(20f, 38f)
             // Con poco ancho, la fecha se encoge antes que cortarse
             val needed = measure(date.monthDay, daySp)
-            if (needed > textW) daySp = (daySp * textW / needed).coerceAtLeast(13f)
+            if (needed > maxText) daySp = (daySp * maxText / needed).coerceAtLeast(13f)
+            // El sello y el texto, como un grupo centrado en el widget
+            val widest = (listOfNotNull(year?.let { measure(it, 13f) }, measure(date.monthDay, daySp), holiday?.let { measure(it, 14f) }) + lines.map { measure(it, 12f) }).max()
+            val group = size + 14f + minOf(widest, maxText)
+            val left = x + (w - minOf(group, w)) / 2
+            weekdayBadge(left, y + (h - size) / 2, size)
+            val textX = left + size + 14f
+            val textW = w - (textX - x)
             // El bloque de texto, centrado en vertical junto al sello
             val rows = listOfNotNull(year?.let { 18f }, daySp + 4f, holiday?.let { 20f }) + lines.map { 16f }
             var baseline = y + ((h - rows.sum()) / 2).coerceAtLeast(0f)
